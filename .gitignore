@@ -1,0 +1,14 @@
+# Dependências
+node_modules/
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Logs e Backups locais do app
+*.log
+*backup*.json
+
+# Configurações locais de IDEs
+.vscode/
+.idea/

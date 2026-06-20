@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Agenda de Trabalho</title>
+  
+  <!-- SEO & PWA Meta Tags -->
+  <meta name="description" content="Agenda pessoal simples para registro de dias trabalhados e controle financeiro.">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+  <!-- App Container -->
+  <div id="app" class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <img src="icon.png" alt="Logo" class="logo-img">
+        <div class="logo-text">
+          <h1>Agenda Pessoal</h1>
+          <span class="sub-title">Trabalho & Serviços</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="icon-btn" aria-label="Alterar Tema">
+          <!-- Sun Icon (shown in dark mode) -->
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <!-- Moon Icon (shown in light mode) -->
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- TAB 1: CALENDÁRIO -->
+      <section id="tab-calendar" class="tab-content active">
+        <div class="calendar-card card">
+          <div class="calendar-header">
+            <button id="prev-month-btn" class="icon-btn" aria-label="Mês Anterior">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <h2 id="current-month-display">Junho 2026</h2>
+            <button id="next-month-btn" class="icon-btn" aria-label="Próximo Mês">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+          
+          <div class="weekdays-grid">
+            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+          </div>
+          
+          <div id="calendar-days-grid" class="days-grid">
+            <!-- Rendered dynamically via JS -->
+          </div>
+        </div>
+
+        <!-- Legend / Overview Card -->
+        <div class="legend-card card">
+          <h3>Legenda e Resumo Rápido</h3>
+          <div class="legend-items">
+            <div class="legend-item" data-type="father">
+              <span class="badge badge-father"></span>
+              <div class="legend-info">
+                <span class="legend-label">Com o Pai</span>
+                <span id="quick-count-father" class="legend-count">0 dias</span>
+              </div>
+            </div>
+            <div class="legend-item" data-type="own">
+              <span class="badge badge-own"></span>
+              <div class="legend-info">
+                <span class="legend-label">Por Minha Conta</span>
+                <span id="quick-count-own" class="legend-count">0 dias</span>
+              </div>
+            </div>
+            <div class="legend-item" data-type="off">
+              <span class="badge badge-off"></span>
+              <div class="legend-info">
+                <span class="legend-label">Folga / Sem Reg.</span>
+                <span id="quick-count-off" class="legend-count">0 dias</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: SERVIÇOS DE PINTURA -->
+      <section id="tab-services" class="tab-content">
+        <div class="services-header-actions">
+          <h2>Serviços de Pintura</h2>
+          <button id="add-service-btn" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Novo Serviço
+          </button>
+        </div>
+
+        <!-- Filter & Search Card -->
+        <div class="filter-card card">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" id="service-search-input" placeholder="Pesquisar por casa, cliente ou descrição...">
+          </div>
+          <div class="filter-row">
+            <div class="form-group select-wrapper">
+              <select id="service-filter-month">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group select-wrapper">
+              <select id="service-filter-status">
+                <option value="all">Todos os Status</option>
+                <option value="pending">Pendentes</option>
+                <option value="paid">Pagos</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Services List -->
+        <div id="services-list-container" class="services-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- TAB 3: RELATÓRIOS -->
+      <section id="tab-reports" class="tab-content">
+        <div class="report-header-row">
+          <h2>Fechamento do Mês</h2>
+          <div class="form-group select-wrapper compact">
+            <select id="report-month-select">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Financial Summary Cards -->
+        <div class="reports-grid">
+          
+          <!-- Summary Chart Card -->
+          <div class="report-chart-card card">
+            <h3>Distribuição de Dias</h3>
+            <div class="chart-container">
+              <!-- Simple CSS-based Stacked Bar Chart -->
+              <div class="progress-bar-stacked">
+                <div id="bar-father" class="bar-segment bar-father" style="width: 0%"></div>
+                <div id="bar-own" class="bar-segment bar-own" style="width: 0%"></div>
+                <div id="bar-off" class="bar-segment bar-off" style="width: 0%"></div>
+              </div>
+              <div class="chart-labels">
+                <div><span class="dot dot-father"></span> Pai: <strong id="chart-lbl-father">0</strong> dias</div>
+                <div><span class="dot dot-own"></span> Conta: <strong id="chart-lbl-own">0</strong> dias</div>
+                <div><span class="dot dot-off"></span> Folga: <strong id="chart-lbl-off">0</strong> dias</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Father Salary Report -->
+          <div class="salary-card card">
+            <div class="card-badge">Com o Pai</div>
+            <h3>Cálculo de Diárias</h3>
+            
+            <div class="report-row">
+              <span>Salário Base:</span>
+              <span id="rep-base-salary" class="amount">R$ 0,00</span>
+            </div>
+            
+            <div class="report-row text-danger">
+              <span>Desconto de Dias Não Trabalhados (<span id="rep-days-off-count">0</span> dias):</span>
+              <span id="rep-deductions" class="amount">- R$ 0,00</span>
+            </div>
+            
+            <div class="report-divider"></div>
+            
+            <div class="report-row highlight">
+              <span>Salário Líquido Pai:</span>
+              <span id="rep-father-final" class="amount text-primary">R$ 0,00</span>
+            </div>
+            <p class="calc-explanation">
+              Cálculo baseado em desconto por faltas de dias que trabalhou por conta ou folgou em dias úteis.
+            </p>
+          </div>
+
+          <!-- Own Services Report -->
+          <div class="services-total-card card">
+            <div class="card-badge orange">Por Conta</div>
+            <h3>Serviços Realizados</h3>
+            
+            <div class="report-row">
+              <span>Total Recebido (Pago):</span>
+              <span id="rep-own-paid" class="amount text-success">R$ 0,00</span>
+            </div>
+            <div class="report-row text-warning">
+              <span>A Receber (Pendente):</span>
+              <span id="rep-own-pending" class="amount">R$ 0,00</span>
+            </div>
+            
+            <div class="report-divider"></div>
+            
+            <div class="report-row highlight">
+              <span>Ganhos Totais Próprios:</span>
+              <span id="rep-own-total" class="amount text-accent">R$ 0,00</span>
+            </div>
+          </div>
+
+          <!-- Total Consolidation Card -->
+          <div class="consolidation-card card">
+            <h3>Resultado Geral do Mês</h3>
+            <div class="consolidation-content">
+              <div class="consolidation-stat">
+                <span class="stat-label">Total Líquido Estimado</span>
+                <span id="rep-grand-total" class="stat-value">R$ 0,00</span>
+                <span class="stat-sub">(Salário Pai Líquido + Serviços Pagos)</span>
+              </div>
+              <div class="consolidation-stat secondary">
+                <span class="stat-label">Total Geral com Pendentes</span>
+                <span id="rep-grand-total-with-pending" class="stat-value secondary">R$ 0,00</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- TAB 4: CONFIGURAÇÕES -->
+      <section id="tab-config" class="tab-content">
+        <!-- Settings Form -->
+        <div class="settings-card card">
+          <h2>Valores de Referência</h2>
+          
+          <div class="form-group">
+            <label for="cfg-base-salary">Salário Mensal Base (com o Pai):</label>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="number" id="cfg-base-salary" placeholder="Ex: 3000" min="0" step="10">
+            </div>
+            <small class="help-text">Salário acordado completo de referência para o mês.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="cfg-day-rate">Valor da Diária de Desconto/Trabalho:</label>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="number" id="cfg-day-rate" placeholder="Ex: 150" min="0" step="5">
+            </div>
+            <small class="help-text">Valor descontado por dia não trabalhado para o pai (quando trabalha por conta ou tira folga).</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="cfg-calc-method">Modo de Cálculo com o Pai:</label>
+            <div class="select-wrapper">
+              <select id="cfg-calc-method">
+                <option value="deduction">Descontar dias não trabalhados do Salário Base</option>
+                <option value="accumulation">Acumular (Dias Trabalhados × Valor da Diária)</option>
+              </select>
+            </div>
+          </div>
+
+          <button id="save-settings-btn" class="btn btn-primary btn-block">Salvar Configurações</button>
+        </div>
+
+        <!-- Backup & Actions Card -->
+        <div class="actions-card card">
+          <h2>Backup e Dados</h2>
+          <p class="backup-desc">
+            Todos os seus dados são salvos localmente no seu celular de forma segura e privada. Faça um backup periodicamente para não perder seus registros.
+          </p>
+          
+          <div class="action-buttons-grid">
+            <button id="export-backup-btn" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+              Exportar Backup (Salvar)
+            </button>
+            <button id="import-backup-btn" class="btn btn-secondary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Importar Backup (Restaurar)
+            </button>
+          </div>
+          <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
+          <div class="danger-zone">
+            <h3>Zona de Perigo</h3>
+            <button id="clear-all-data-btn" class="btn btn-danger btn-block">Limpar Todos os Dados</button>
+          </div>
+        </div>
+
+        <!-- Installation & App Info -->
+        <div class="info-card card">
+          <h2>Como usar no Celular</h2>
+          <ol class="setup-steps">
+            <li>Abra este aplicativo no navegador Chrome do seu celular Android.</li>
+            <li>Toque nos <strong>três pontinhos</strong> (canto superior direito).</li>
+            <li>Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.</li>
+            <li>Pronto! Ele será instalado como um aplicativo de verdade no seu celular, funcionando mesmo sem internet (offline) e salvando todas as suas informações de forma segura.</li>
+          </ol>
+          <div class="app-version">Versão 1.0.0 (PWA)</div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Navigation Bar -->
+    <nav class="app-nav">
+      <button class="nav-item active" data-tab="tab-calendar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span>Calendário</span>
+      </button>
+      <button class="nav-item" data-tab="tab-services">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          <path d="M9 11l2 2 4-4"></path>
+        </svg>
+        <span>Serviços</span>
+      </button>
+      <button class="nav-item" data-tab="tab-reports">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span>Relatórios</span>
+      </button>
+      <button class="nav-item" data-tab="tab-config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MODAL: REGISTRO/EDIÇÃO DE DIA & SERVIÇO -->
+  <div id="day-modal" class="modal-overlay">
+    <div class="modal-card">
+      <header class="modal-header">
+        <h3 id="modal-date-title">12 de Junho de 2026</h3>
+        <button id="modal-close-btn" class="icon-btn" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </header>
+      
+      <div class="modal-body">
+        <!-- Day Status Selection -->
+        <div class="form-group">
+          <label class="section-label">Tipo de Trabalho neste Dia:</label>
+          <div class="work-type-selector">
+            <label class="radio-card select-father">
+              <input type="radio" name="modal-work-type" value="father" checked>
+              <div class="radio-content">
+                <span class="radio-icon">🧑‍🤝‍🧑</span>
+                <span class="radio-title">Com o Pai</span>
+                <span class="radio-desc">Garante a diária/salário integral</span>
+              </div>
+            </label>
+            <label class="radio-card select-own">
+              <input type="radio" name="modal-work-type" value="own">
+              <div class="radio-content">
+                <span class="radio-icon">💼</span>
+                <span class="radio-title">Por Conta</span>
+                <span class="radio-desc">Serviço de pintura autônomo</span>
+              </div>
+            </label>
+            <label class="radio-card select-off">
+              <input type="radio" name="modal-work-type" value="off">
+              <div class="radio-content">
+                <span class="radio-icon">🏖️</span>
+                <span class="radio-title">Folga / Descanso</span>
+                <span class="radio-desc">Nenhum trabalho registrado</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Painting Service Section (Conditionally shown or expanded) -->
+        <div id="painting-service-fields" class="painting-service-fields">
+          <div class="divider"></div>
+          <h4 class="section-sub-title">Detalhes do Serviço de Pintura</h4>
+          
+          <div class="form-group">
+            <label for="srv-client">Qual Casa / Cliente?</label>
+            <input type="text" id="srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
+          </div>
+          
+          <div class="form-group">
+            <label for="srv-description">O que foi feito? (Descrição opcional)</label>
+            <textarea id="srv-description" rows="2" placeholder="Ex: Lixamento e primeira demão de tinta acrílica premium nas paredes externas..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="srv-value">Valor Cobrado (R$):</label>
+              <div class="input-prefix-wrapper">
+                <span class="input-prefix">R$</span>
+                <input type="number" id="srv-value" placeholder="Ex: 350" min="0" step="10">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="srv-status">Status do Pagamento:</label>
+              <div class="select-wrapper">
+                <select id="srv-status">
+                  <option value="pending">Pendente (A receber)</option>
+                  <option value="paid">Pago (Recebido)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <footer class="modal-footer">
+        <button id="modal-delete-day-btn" class="btn btn-text text-danger" style="display: none;">Remover Registro</button>
+        <button id="modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
+        <button id="modal-save-btn" class="btn btn-primary">Salvar Registro</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast-notification" class="toast">Mensagem do Toast</div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

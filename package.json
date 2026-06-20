@@ -1,0 +1,19 @@
+{
+  "name": "agenda-pessoal",
+  "version": "1.0.0",
+  "description": "Agenda de trabalho simples e controle de pintura para celular Android.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y http-server -p 8080 -a 0.0.0.0",
+    "start": "npx -y http-server -p 8080 -a 0.0.0.0"
+  },
+  "keywords": [
+    "pwa",
+    "agenda",
+    "pintura",
+    "android"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}
