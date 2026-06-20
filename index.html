@@ -228,6 +228,28 @@
             </div>
           </div>
 
+          <!-- Helpers / Wages to Pay Report -->
+          <div class="helpers-card card">
+            <div class="card-badge yellow">Comigo (Ajudante)</div>
+            <h3>Ajudantes / Parcerias</h3>
+            
+            <div class="report-row">
+              <span>Pai trabalhou comigo (<span id="rep-helper-father-count">0</span> dias):</span>
+              <span id="rep-helper-father-total" class="amount text-warning">R$ 0,00</span>
+            </div>
+            <div class="report-row">
+              <span>Outro ajudante comigo (<span id="rep-helper-other-count">0</span> dias):</span>
+              <span id="rep-helper-other-total" class="amount">R$ 0,00</span>
+            </div>
+            
+            <div class="report-divider"></div>
+            
+            <div class="report-row highlight">
+              <span>Total de Diárias a Pagar:</span>
+              <span id="rep-helper-total" class="amount text-danger">R$ 0,00</span>
+            </div>
+          </div>
+
           <!-- Total Consolidation Card -->
           <div class="consolidation-card card">
             <h3>Resultado Geral do Mês</h3>
@@ -235,7 +257,7 @@
               <div class="consolidation-stat">
                 <span class="stat-label">Total Líquido Estimado</span>
                 <span id="rep-grand-total" class="stat-value">R$ 0,00</span>
-                <span class="stat-sub">(Salário Pai Líquido + Serviços Pagos)</span>
+                <span class="stat-sub">(Salário Pai + Serviços Pagos - Diárias Ajudantes)</span>
               </div>
               <div class="consolidation-stat secondary">
                 <span class="stat-label">Total Geral com Pendentes</span>
@@ -269,6 +291,15 @@
               <input type="number" id="cfg-day-rate" placeholder="Ex: 150" min="0" step="5">
             </div>
             <small class="help-text">Valor descontado por dia não trabalhado para o pai (quando trabalha por conta ou tira folga).</small>
+          </div>
+
+          <div class="form-group">
+            <label for="cfg-helper-rate">Valor Padrão da Diária do Ajudante:</label>
+            <div class="input-prefix-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="number" id="cfg-helper-rate" placeholder="Ex: 120" min="0" step="5">
+            </div>
+            <small class="help-text">Diária padrão paga para quem ajuda você em seus serviços (Pai ou outro ajudante).</small>
           </div>
           
           <div class="form-group">
@@ -437,6 +468,40 @@
             </div>
           </div>
         </div>
+
+        <!-- Helper Section -->
+        <div class="divider"></div>
+        <h4 class="section-sub-title">Ajudante / Parceria no Dia</h4>
+        
+        <div class="form-group">
+          <label class="checkbox-container">
+            <input type="checkbox" id="srv-has-helper">
+            <span class="checkbox-label">Tive ajudante trabalhando comigo neste dia</span>
+          </label>
+        </div>
+        
+        <div id="helper-details-fields" class="helper-details-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="srv-helper-name">Quem ajudou?</label>
+              <div class="select-wrapper">
+                <select id="srv-helper-name">
+                  <option value="father">Pai</option>
+                  <option value="helper">Outro Ajudante</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="srv-helper-rate">Valor da Diária (R$):</label>
+              <div class="input-prefix-wrapper">
+                <span class="input-prefix">R$</span>
+                <input type="number" id="srv-helper-rate" placeholder="Ex: 120" min="0" step="5">
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
       
       <footer class="modal-footer">

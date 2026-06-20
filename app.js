@@ -5,10 +5,11 @@
 
 // --- STATE MANAGEMENT ---
 let appState = {
-  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off', service: null | { client, description, value, status } }
+  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off', service: null, helper: null }
   settings: {
     baseSalary: 3000,
     dayRate: 150,
+    helperRate: 120, // default wage for helper/father when working with you
     calcMethod: 'deduction', // 'deduction' | 'accumulation'
     theme: 'dark'
   }
@@ -37,6 +38,11 @@ function loadState() {
     } catch (e) {
       console.error("Erro ao carregar dados do localStorage:", e);
     }
+  }
+  
+  // Set default helperRate if it doesn't exist (backwards compatibility)
+  if (appState.settings.helperRate === undefined) {
+    appState.settings.helperRate = 120;
   }
   
   // Apply theme
@@ -132,11 +138,26 @@ function renderCalendar() {
       if (event.type === 'own') dayBtn.classList.add('work-own');
       if (event.type === 'off') dayBtn.classList.add('work-off');
       
+      // Indicators below day number
+      const indicatorsContainer = document.createElement('div');
+      indicatorsContainer.classList.add('day-indicators-container');
+      
       // If there is painting service details
       if (event.service && event.service.client) {
         const dot = document.createElement('span');
         dot.classList.add('service-dot');
-        dayBtn.appendChild(dot);
+        indicatorsContainer.appendChild(dot);
+      }
+      
+      // If there is helper details (Father or someone else helped)
+      if (event.helper) {
+        const helperDot = document.createElement('span');
+        helperDot.classList.add('helper-dot');
+        indicatorsContainer.appendChild(helperDot);
+      }
+      
+      if (indicatorsContainer.children.length > 0) {
+        dayBtn.appendChild(indicatorsContainer);
       }
     }
     
@@ -189,6 +210,13 @@ function openDayModal(dateStr) {
   document.getElementById('srv-value').value = '';
   document.getElementById('srv-status').value = 'pending';
   
+  // Reset helper elements
+  const helperCheckbox = document.getElementById('srv-has-helper');
+  helperCheckbox.checked = false;
+  document.getElementById('srv-helper-name').value = 'father';
+  document.getElementById('srv-helper-rate').value = appState.settings.helperRate;
+  document.getElementById('helper-details-fields').classList.remove('active');
+  
   // Pre-fill fields if event exists
   if (event) {
     // Select radio button
@@ -204,6 +232,14 @@ function openDayModal(dateStr) {
       document.getElementById('srv-description').value = event.service.description || '';
       document.getElementById('srv-value').value = event.service.value || '';
       document.getElementById('srv-status').value = event.service.status || 'pending';
+    }
+    
+    // Pre-fill helper details if they exist
+    if (event.helper) {
+      helperCheckbox.checked = true;
+      document.getElementById('srv-helper-name').value = event.helper.name || 'father';
+      document.getElementById('srv-helper-rate').value = event.helper.rate || appState.settings.helperRate;
+      document.getElementById('helper-details-fields').classList.add('active');
     }
     
     // Show delete button
@@ -365,6 +401,13 @@ function renderReports() {
   let countOwn = 0;
   let countOff = 0;
   
+  // Helper calculations
+  let helperFatherCount = 0;
+  let helperFatherTotal = 0;
+  let helperOtherCount = 0;
+  let helperOtherTotal = 0;
+  let helperTotal = 0;
+  
   // Own Services sums
   let ownPaidSum = 0;
   let ownPendingSum = 0;
@@ -386,6 +429,19 @@ function renderReports() {
         }
       }
       if (event.type === 'off') countOff++;
+      
+      // Calculate helper diárias
+      if (event.helper) {
+        const hRate = Number(event.helper.rate) || 0;
+        if (event.helper.name === 'father') {
+          helperFatherCount++;
+          helperFatherTotal += hRate;
+        } else {
+          helperOtherCount++;
+          helperOtherTotal += hRate;
+        }
+        helperTotal += hRate;
+      }
     }
   });
   
@@ -451,9 +507,16 @@ function renderReports() {
   document.getElementById('rep-own-pending').textContent = formatCurrency(ownPendingSum);
   document.getElementById('rep-own-total').textContent = formatCurrency(ownTotalSum);
   
-  // 4. Combined Monthly Consolidation
-  const grandTotal = netFatherSalary + ownPaidSum; // what is physically paid/received
-  const grandTotalWithPending = netFatherSalary + ownTotalSum; // expected total
+  // 4. Helpers / Partner calculation UI updates
+  document.getElementById('rep-helper-father-count').textContent = helperFatherCount;
+  document.getElementById('rep-helper-father-total').textContent = formatCurrency(helperFatherTotal);
+  document.getElementById('rep-helper-other-count').textContent = helperOtherCount;
+  document.getElementById('rep-helper-other-total').textContent = formatCurrency(helperOtherTotal);
+  document.getElementById('rep-helper-total').textContent = formatCurrency(helperTotal);
+  
+  // 5. Combined Monthly Consolidation (Deducting helper cost)
+  const grandTotal = netFatherSalary + ownPaidSum - helperTotal; // physically received net profit
+  const grandTotalWithPending = netFatherSalary + ownTotalSum - helperTotal; // potential net profit
   
   document.getElementById('rep-grand-total').textContent = formatCurrency(grandTotal);
   document.getElementById('rep-grand-total-with-pending').textContent = formatCurrency(grandTotalWithPending);
@@ -497,21 +560,24 @@ function updateReportMonthDropdown() {
 function loadSettingsToUI() {
   document.getElementById('cfg-base-salary').value = appState.settings.baseSalary;
   document.getElementById('cfg-day-rate').value = appState.settings.dayRate;
+  document.getElementById('cfg-helper-rate').value = appState.settings.helperRate !== undefined ? appState.settings.helperRate : 120;
   document.getElementById('cfg-calc-method').value = appState.settings.calcMethod;
 }
 
 function saveSettingsFromUI() {
   const baseSal = Number(document.getElementById('cfg-base-salary').value);
   const dayRate = Number(document.getElementById('cfg-day-rate').value);
+  const helperRate = Number(document.getElementById('cfg-helper-rate').value);
   const method = document.getElementById('cfg-calc-method').value;
   
-  if (isNaN(baseSal) || baseSal < 0 || isNaN(dayRate) || dayRate < 0) {
+  if (isNaN(baseSal) || baseSal < 0 || isNaN(dayRate) || dayRate < 0 || isNaN(helperRate) || helperRate < 0) {
     showToast("⚠️ Insira valores válidos nas configurações!");
     return;
   }
   
   appState.settings.baseSalary = baseSal;
   appState.settings.dayRate = dayRate;
+  appState.settings.helperRate = helperRate;
   appState.settings.calcMethod = method;
   
   saveState();
@@ -691,10 +757,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
   
+  // Listen to helper checkbox toggle
+  document.getElementById('srv-has-helper').addEventListener('change', (e) => {
+    const fields = document.getElementById('helper-details-fields');
+    if (e.target.checked) {
+      fields.classList.add('active');
+    } else {
+      fields.classList.remove('active');
+    }
+  });
+  
   // Modal Save Button Handler
   document.getElementById('modal-save-btn').addEventListener('click', () => {
     const workType = document.querySelector('input[name="modal-work-type"]:checked').value;
     
+    // Save service info
     let serviceData = null;
     if (workType === 'own') {
       const client = document.getElementById('srv-client').value.trim();
@@ -715,10 +792,23 @@ document.addEventListener('DOMContentLoaded', () => {
       };
     }
     
+    // Save helper info
+    let helperData = null;
+    const hasHelper = document.getElementById('srv-has-helper').checked;
+    if (hasHelper) {
+      const hName = document.getElementById('srv-helper-name').value;
+      const hRate = Number(document.getElementById('srv-helper-rate').value);
+      helperData = {
+        name: hName,
+        rate: isNaN(hRate) ? appState.settings.helperRate : hRate
+      };
+    }
+    
     // Save to State
     appState.events[selectedModalDate] = {
       type: workType,
-      service: serviceData
+      service: serviceData,
+      helper: helperData
     };
     
     saveState();
