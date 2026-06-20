@@ -5,7 +5,8 @@ const ASSETS = [
   './style.css',
   './app.js',
   './manifest.json',
-  './icon.png'
+  './icon.png',
+  './icon-192.png'
 ];
 
 // Instalação do Service Worker e caching de recursos essenciais
