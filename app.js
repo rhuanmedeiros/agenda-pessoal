@@ -476,8 +476,8 @@ function renderReports() {
   document.getElementById('rep-base-salary').textContent = formatCurrency(baseSalary);
   
   if (calcMethod === 'deduction') {
-    // Deduct days worked on own or registered as off
-    deductionsCount = countOwn + countOff;
+    // Deduct days worked on own (off days / holidays are not deducted)
+    deductionsCount = countOwn;
     deductionsTotal = deductionsCount * dayRate;
     netFatherSalary = Math.max(0, baseSalary - deductionsTotal);
     
@@ -485,7 +485,7 @@ function renderReports() {
     document.getElementById('rep-deductions').textContent = `- ${formatCurrency(deductionsTotal)}`;
     
     const explanation = document.querySelector('.calc-explanation');
-    explanation.textContent = `Modo Desconto: Subtrai ${deductionsCount} faltas (Dias por conta + Folgas) no valor diário de ${formatCurrency(dayRate)} do salário base de ${formatCurrency(baseSalary)}.`;
+    explanation.textContent = `Modo Desconto: Subtrai ${deductionsCount} dias por conta no valor diário de ${formatCurrency(dayRate)} do salário base de ${formatCurrency(baseSalary)}.`;
   } else {
     // Accumulation mode: sum days worked for father
     netFatherSalary = countFather * dayRate;
