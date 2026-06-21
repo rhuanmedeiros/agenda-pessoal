@@ -5,13 +5,15 @@
 
 // --- STATE MANAGEMENT ---
 let appState = {
-  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off', service: null, helper: null }
+  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', service: null, helper: null, updatedAt: 0 }
   settings: {
     baseSalary: 3000,
     dayRate: 150,
     helperRate: 120, // default wage for helper/father when working with you
     calcMethod: 'deduction', // 'deduction' | 'accumulation'
-    theme: 'dark'
+    theme: 'dark',
+    sheetsUrl: '',
+    lastSync: ''
   }
 };
 
@@ -43,6 +45,12 @@ function loadState() {
   // Set default helperRate if it doesn't exist (backwards compatibility)
   if (appState.settings.helperRate === undefined) {
     appState.settings.helperRate = 120;
+  }
+  if (appState.settings.sheetsUrl === undefined) {
+    appState.settings.sheetsUrl = '';
+  }
+  if (appState.settings.lastSync === undefined) {
+    appState.settings.lastSync = '';
   }
   
   // Apply theme
@@ -133,7 +141,7 @@ function renderCalendar() {
     
     // Check if event exists for this day
     const event = appState.events[dateStr];
-    if (event) {
+    if (event && event.type !== 'deleted') {
       if (event.type === 'father') dayBtn.classList.add('work-father');
       if (event.type === 'own') dayBtn.classList.add('work-own');
       if (event.type === 'off') dayBtn.classList.add('work-off');
@@ -181,10 +189,13 @@ function updateQuickOverview() {
   
   Object.keys(appState.events).forEach(dateStr => {
     if (dateStr.startsWith(monthPrefix)) {
-      const type = appState.events[dateStr].type;
-      if (type === 'father') countFather++;
-      if (type === 'own') countOwn++;
-      if (type === 'off') countOff++;
+      const event = appState.events[dateStr];
+      if (event && event.type !== 'deleted') {
+        const type = event.type;
+        if (type === 'father') countFather++;
+        if (type === 'own') countOwn++;
+        if (type === 'off') countOff++;
+      }
     }
   });
   
@@ -218,7 +229,7 @@ function openDayModal(dateStr) {
   document.getElementById('helper-details-fields').classList.remove('active');
   
   // Pre-fill fields if event exists
-  if (event) {
+  if (event && event.type !== 'deleted') {
     // Select radio button
     const radio = document.querySelector(`input[name="modal-work-type"][value="${event.type}"]`);
     if (radio) radio.checked = true;
@@ -365,7 +376,10 @@ function updateServiceFilterDropdowns() {
   // Extract unique Year-Month combinations from events
   const monthsSet = new Set();
   Object.keys(appState.events).forEach(dateStr => {
-    monthsSet.add(dateStr.substring(0, 7)); // 'YYYY-MM'
+    const event = appState.events[dateStr];
+    if (event && event.type !== 'deleted') {
+      monthsSet.add(dateStr.substring(0, 7)); // 'YYYY-MM'
+    }
   });
   
   const sortedMonths = Array.from(monthsSet).sort().reverse();
@@ -416,31 +430,33 @@ function renderReports() {
   Object.keys(appState.events).forEach(dateStr => {
     if (dateStr.startsWith(selectedYM)) {
       const event = appState.events[dateStr];
-      if (event.type === 'father') countFather++;
-      if (event.type === 'own') {
-        countOwn++;
-        if (event.service) {
-          const val = Number(event.service.value) || 0;
-          if (event.service.status === 'paid') {
-            ownPaidSum += val;
-          } else {
-            ownPendingSum += val;
+      if (event && event.type !== 'deleted') {
+        if (event.type === 'father') countFather++;
+        if (event.type === 'own') {
+          countOwn++;
+          if (event.service) {
+            const val = Number(event.service.value) || 0;
+            if (event.service.status === 'paid') {
+              ownPaidSum += val;
+            } else {
+              ownPendingSum += val;
+            }
           }
         }
-      }
-      if (event.type === 'off') countOff++;
-      
-      // Calculate helper diárias
-      if (event.helper) {
-        const hRate = Number(event.helper.rate) || 0;
-        if (event.helper.name === 'father') {
-          helperFatherCount++;
-          helperFatherTotal += hRate;
-        } else {
-          helperOtherCount++;
-          helperOtherTotal += hRate;
+        if (event.type === 'off') countOff++;
+        
+        // Calculate helper diárias
+        if (event.helper) {
+          const hRate = Number(event.helper.rate) || 0;
+          if (event.helper.name === 'father') {
+            helperFatherCount++;
+            helperFatherTotal += hRate;
+          } else {
+            helperOtherCount++;
+            helperOtherTotal += hRate;
+          }
+          helperTotal += hRate;
         }
-        helperTotal += hRate;
       }
     }
   });
@@ -536,7 +552,10 @@ function updateReportMonthDropdown() {
   
   // Add months from events
   Object.keys(appState.events).forEach(dateStr => {
-    monthsSet.add(dateStr.substring(0, 7));
+    const event = appState.events[dateStr];
+    if (event && event.type !== 'deleted') {
+      monthsSet.add(dateStr.substring(0, 7));
+    }
   });
   
   const sortedMonths = Array.from(monthsSet).sort().reverse();
@@ -560,27 +579,35 @@ function updateReportMonthDropdown() {
 function loadSettingsToUI() {
   document.getElementById('cfg-base-salary').value = appState.settings.baseSalary;
   document.getElementById('cfg-day-rate').value = appState.settings.dayRate;
-  document.getElementById('cfg-helper-rate').value = appState.settings.helperRate !== undefined ? appState.settings.helperRate : 120;
+  document.getElementById('cfg-helper-rate').value = appState.settings.helperRate;
   document.getElementById('cfg-calc-method').value = appState.settings.calcMethod;
+  
+  // Sheets URL and Sync status
+  const sheetsUrlInput = document.getElementById('cfg-sheets-url');
+  if (sheetsUrlInput) sheetsUrlInput.value = appState.settings.sheetsUrl || '';
+  
+  const lastSyncText = document.getElementById('sync-status-text');
+  if (lastSyncText) lastSyncText.textContent = `Última sincronização: ${appState.settings.lastSync || 'Nunca'}`;
 }
 
 function saveSettingsFromUI() {
-  const baseSal = Number(document.getElementById('cfg-base-salary').value);
-  const dayRate = Number(document.getElementById('cfg-day-rate').value);
-  const helperRate = Number(document.getElementById('cfg-helper-rate').value);
+  const baseSal = Number(document.getElementById('cfg-base-salary').value) || 0;
+  const dayRate = Number(document.getElementById('cfg-day-rate').value) || 0;
+  const helperRate = Number(document.getElementById('cfg-helper-rate').value) || 0;
   const method = document.getElementById('cfg-calc-method').value;
   
-  if (isNaN(baseSal) || baseSal < 0 || isNaN(dayRate) || dayRate < 0 || isNaN(helperRate) || helperRate < 0) {
-    showToast("⚠️ Insira valores válidos nas configurações!");
-    return;
-  }
+  // Sheets URL
+  const sheetsUrlInput = document.getElementById('cfg-sheets-url');
+  const sheetsUrl = sheetsUrlInput ? sheetsUrlInput.value.trim() : '';
   
   appState.settings.baseSalary = baseSal;
   appState.settings.dayRate = dayRate;
   appState.settings.helperRate = helperRate;
   appState.settings.calcMethod = method;
+  appState.settings.sheetsUrl = sheetsUrl;
   
   saveState();
+  updateSyncHeaderBtnVisibility();
   showToast("✅ Configurações salvas com sucesso!");
   
   // Refresh views that depend on settings
@@ -682,6 +709,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateServiceFilterDropdowns();
   updateReportMonthDropdown();
   loadSettingsToUI();
+  updateSyncHeaderBtnVisibility();
   
   // 3. Tab Switching Setup
   const navItems = document.querySelectorAll('.nav-item');
@@ -808,7 +836,8 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.events[selectedModalDate] = {
       type: workType,
       service: serviceData,
-      helper: helperData
+      helper: helperData,
+      updatedAt: Date.now()
     };
     
     saveState();
@@ -828,7 +857,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Modal Delete Button Handler
   document.getElementById('modal-delete-day-btn').addEventListener('click', () => {
     if (confirm("Remover o registro deste dia?")) {
-      delete appState.events[selectedModalDate];
+      appState.events[selectedModalDate] = {
+        type: 'deleted',
+        updatedAt: Date.now()
+      };
       saveState();
       closeDayModal();
       showToast("🗑️ Registro removido.");
@@ -865,7 +897,157 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-backup-btn').addEventListener('click', triggerImport);
   document.getElementById('import-file-input').addEventListener('change', handleImportFile);
   document.getElementById('clear-all-data-btn').addEventListener('click', clearAllData);
+  
+  // Google Sheets Sync Event Listeners
+  document.getElementById('sync-now-btn').addEventListener('click', syncWithGoogleSheets);
+  const syncHeaderBtn = document.getElementById('sync-header-btn');
+  if (syncHeaderBtn) {
+    syncHeaderBtn.addEventListener('click', syncWithGoogleSheets);
+  }
 });
+
+// --- GOOGLE SHEETS SYNC IMPLEMENTATION ---
+
+// Toggle the sync button in the header based on URL existence
+function updateSyncHeaderBtnVisibility() {
+  const syncBtn = document.getElementById('sync-header-btn');
+  if (syncBtn) {
+    if (appState.settings.sheetsUrl && appState.settings.sheetsUrl.trim() !== '') {
+      syncBtn.style.display = 'flex';
+    } else {
+      syncBtn.style.display = 'none';
+    }
+  }
+}
+
+// Merge local and remote events based on updatedAt timestamp
+function mergeEvents(localEvents, remoteEvents) {
+  const merged = { ...localEvents };
+  
+  Object.keys(remoteEvents).forEach(dateStr => {
+    const localEv = localEvents[dateStr];
+    const remoteEv = remoteEvents[dateStr];
+    
+    if (!localEv) {
+      // If doesn't exist locally, add from remote
+      merged[dateStr] = remoteEv;
+    } else {
+      // If exists in both, compare updatedAt
+      const localTime = localEv.updatedAt || 0;
+      const remoteTime = remoteEv.updatedAt || 0;
+      
+      if (remoteTime > localTime) {
+        merged[dateStr] = remoteEv;
+      }
+    }
+  });
+  
+  return merged;
+}
+
+// Function to trigger synchronization
+async function syncWithGoogleSheets() {
+  const sheetsUrl = appState.settings.sheetsUrl;
+  if (!sheetsUrl || sheetsUrl.trim() === '') {
+    showToast("⚠️ URL do Google Sheets não configurada!");
+    return;
+  }
+  
+  // Visual feedback: Spin icons
+  const headerSyncBtn = document.getElementById('sync-header-btn');
+  const bodySyncBtn = document.getElementById('sync-now-btn');
+  const headerIcon = headerSyncBtn ? headerSyncBtn.querySelector('.sync-icon-svg') : null;
+  const bodyIcon = bodySyncBtn ? bodySyncBtn.querySelector('.inline-svg') : null;
+  
+  if (headerIcon) headerIcon.classList.add('spinning');
+  if (bodyIcon) bodyIcon.classList.add('spinning');
+  if (bodySyncBtn) bodySyncBtn.disabled = true;
+  
+  showToast("🔄 Sincronizando com a Nuvem...");
+  
+  try {
+    // 1. Fetch data from Google Sheets (GET)
+    const response = await fetch(sheetsUrl, {
+      method: 'GET',
+      mode: 'cors',
+      redirect: 'follow'
+    });
+    
+    if (!response.ok) throw new Error("Erro na requisição GET");
+    
+    const result = await response.json();
+    if (result.status !== 'success') {
+      throw new Error(result.message || "Erro retornado pela API");
+    }
+    
+    const remoteEvents = result.events || {};
+    const localEvents = appState.events;
+    
+    // 2. Check if local is empty and remote has data (First synchronization on new device)
+    const hasLocalData = Object.keys(localEvents).filter(k => localEvents[k].type !== 'deleted').length > 0;
+    const hasRemoteData = Object.keys(remoteEvents).filter(k => remoteEvents[k].type !== 'deleted').length > 0;
+    
+    let consolidatedEvents = {};
+    if (!hasLocalData && hasRemoteData) {
+      // Ask user if they want to pull remote data
+      if (confirm("Detectamos dados na sua planilha online, mas este celular está sem registros. Deseja baixar os dados da nuvem para este celular?")) {
+        consolidatedEvents = remoteEvents;
+        showToast("📥 Dados baixados do Google Sheets!");
+      } else {
+        // User chose to overwrite remote with empty local
+        consolidatedEvents = localEvents;
+      }
+    } else {
+      // Ordinary merge based on timestamps
+      consolidatedEvents = mergeEvents(localEvents, remoteEvents);
+    }
+    
+    // 3. Send consolidated data back to Google Sheets (POST)
+    const postResponse = await fetch(sheetsUrl, {
+      method: 'POST',
+      mode: 'cors',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain' // simple content-type to avoid CORS preflight options block
+      },
+      body: JSON.stringify({ events: consolidatedEvents })
+    });
+    
+    if (!postResponse.ok) throw new Error("Erro na requisição POST");
+    
+    const postResult = await postResponse.json();
+    if (postResult.status !== 'success') {
+      throw new Error(postResult.message || "Erro ao salvar na planilha");
+    }
+    
+    // 4. Update local state
+    appState.events = consolidatedEvents;
+    
+    const nowStr = new Date().toLocaleString('pt-BR');
+    appState.settings.lastSync = nowStr;
+    saveState();
+    
+    // 5. Update UI
+    const syncStatusText = document.getElementById('sync-status-text');
+    if (syncStatusText) syncStatusText.textContent = `Última sincronização: ${nowStr}`;
+    
+    // Refresh views
+    if (activeTab === 'tab-calendar') renderCalendar();
+    else if (activeTab === 'tab-services') renderServices();
+    else if (activeTab === 'tab-reports') renderReports();
+    
+    showToast("☁️ Sincronizado com sucesso!");
+    
+  } catch (error) {
+    console.error("Erro na sincronização:", error);
+    showToast("❌ Erro ao sincronizar: " + error.message);
+  } finally {
+    // Stop spinning icons
+    if (headerIcon) headerIcon.classList.remove('spinning');
+    if (bodyIcon) bodyIcon.classList.remove('spinning');
+    if (bodySyncBtn) bodySyncBtn.disabled = false;
+  }
+}
 
 // --- SERVICE WORKER REGISTRATION (PWA) ---
 if ('serviceWorker' in navigator) {

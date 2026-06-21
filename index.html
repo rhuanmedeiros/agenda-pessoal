@@ -35,6 +35,13 @@
         </div>
       </div>
       <div class="header-actions">
+        <button id="sync-header-btn" class="icon-btn" aria-label="Sincronizar Dados" style="display: none;">
+          <svg class="sync-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.47 0-.89.09-1.25.26A5 5 0 0 0 5 14c0 2.21 1.79 4 4 4h8.5"></path>
+            <polyline points="12 10 12 16 14 14"></polyline>
+            <polyline points="12 16 10 14"></polyline>
+          </svg>
+        </button>
         <button id="theme-toggle-btn" class="icon-btn" aria-label="Alterar Tema">
           <!-- Sun Icon (shown in dark mode) -->
           <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -313,6 +320,30 @@
           </div>
 
           <button id="save-settings-btn" class="btn btn-primary btn-block">Salvar Configurações</button>
+        </div>
+
+        <!-- Google Sheets Sync Card -->
+        <div class="settings-card card">
+          <h2>Sincronização na Nuvem (Google Sheets)</h2>
+          <p class="backup-desc">
+            Salve seus dados online em uma planilha do Google Sheets. Isso garante que você não perca seus dados se trocar ou perder o celular, bastando inserir a mesma URL no celular novo.
+          </p>
+          
+          <div class="form-group">
+            <label for="cfg-sheets-url">URL do Web App do Google Sheets:</label>
+            <input type="url" id="cfg-sheets-url" placeholder="https://script.google.com/macros/s/.../exec" style="width: 100%; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-card); background: var(--bg-card); color: var(--text-primary); margin-top: 0.5rem; font-family: inherit;">
+            <small class="help-text">Cole a URL gerada ao implantar o Apps Script como Web App na sua planilha.</small>
+          </div>
+          
+          <div style="margin-top: 1.5rem;">
+            <button id="sync-now-btn" class="btn btn-primary btn-block">
+              <svg class="inline-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+              </svg>
+              Sincronizar Agora
+            </button>
+            <p id="sync-status-text" class="sync-status-lbl">Última sincronização: Nunca</p>
+          </div>
         </div>
 
         <!-- Backup & Actions Card -->

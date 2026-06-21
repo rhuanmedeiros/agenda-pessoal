@@ -1346,3 +1346,40 @@ body.light-theme .toast {
   color: #0e1713;
   box-shadow: 0 10px 25px rgba(0,0,0,0.08);
 }
+
+/* --- GOOGLE SHEETS SYNC STYLES --- */
+.sync-status-lbl {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.sync-icon-svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+.sync-icon-svg.spinning {
+  animation: spin 1s linear infinite;
+  color: var(--color-brand-green);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.inline-svg {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
