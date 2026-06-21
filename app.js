@@ -5,7 +5,8 @@
 
 // --- STATE MANAGEMENT ---
 let appState = {
-  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', service: null, helper: null, updatedAt: 0 }
+  events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', serviceId: null, helper: null, updatedAt: 0 }
+  services: {}, // key: 'service_id', value: { id, client, description, value, status, updatedAt }
   settings: {
     baseSalary: 3000,
     dayRate: 150,
@@ -36,6 +37,7 @@ function loadState() {
     try {
       const parsed = JSON.parse(savedState);
       if (parsed.events) appState.events = parsed.events;
+      if (parsed.services) appState.services = parsed.services;
       if (parsed.settings) appState.settings = { ...appState.settings, ...parsed.settings };
     } catch (e) {
       console.error("Erro ao carregar dados do localStorage:", e);
@@ -53,6 +55,9 @@ function loadState() {
     appState.settings.lastSync = '';
   }
   
+  // Run data migration for older structure to the new services model
+  migrateOldState();
+  
   // Apply theme
   if (appState.settings.theme === 'light') {
     document.body.classList.remove('dark-theme');
@@ -65,6 +70,70 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('agenda_pessoal_state', JSON.stringify(appState));
+}
+
+function migrateOldState() {
+  if (!appState.services) {
+    appState.services = {};
+  }
+  
+  let migratedCount = 0;
+  const tempServicesMap = {}; // key: client_status, value: serviceId
+  
+  Object.keys(appState.events).forEach(dateStr => {
+    const event = appState.events[dateStr];
+    if (event && event.type !== 'deleted' && event.service && !event.serviceId) {
+      const client = (event.service.client || "Sem Cliente").trim();
+      const desc = event.service.description || "";
+      const value = Number(event.service.value) || 0;
+      const status = event.service.status || "pending";
+      
+      const key = `${client}_${status}`;
+      
+      let serviceId;
+      if (tempServicesMap[key]) {
+        serviceId = tempServicesMap[key];
+        if (appState.services[serviceId].value === 0 && value > 0) {
+          appState.services[serviceId].value = value;
+        }
+      } else {
+        // Find if we already have a service with this client and description in state from previous sessions
+        const existingSrvId = Object.keys(appState.services).find(id => {
+          const s = appState.services[id];
+          return s.client === client && s.status === status;
+        });
+        
+        if (existingSrvId) {
+          serviceId = existingSrvId;
+          tempServicesMap[key] = serviceId;
+          if (appState.services[serviceId].value === 0 && value > 0) {
+            appState.services[serviceId].value = value;
+          }
+        } else {
+          serviceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+          tempServicesMap[key] = serviceId;
+          
+          appState.services[serviceId] = {
+            id: serviceId,
+            client: client,
+            description: desc,
+            value: value,
+            status: status,
+            updatedAt: Date.now()
+          };
+          migratedCount++;
+        }
+      }
+      
+      event.serviceId = serviceId;
+      delete event.service;
+    }
+  });
+  
+  if (migratedCount > 0) {
+    console.log(`Migracao concluida: ${migratedCount} servicos legados criados.`);
+    saveState();
+  }
 }
 
 // Helper to show custom toast notifications
@@ -216,10 +285,31 @@ function openDayModal(dateStr) {
   const event = appState.events[dateStr];
   
   // Reset form elements
+  const srvSelect = document.getElementById('srv-select');
+  srvSelect.innerHTML = '<option value="none">Nenhum (Apenas registrar dia de diária)</option><option value="new">+ Criar Novo Serviço...</option>';
+  
+  // Populate srvSelect with all pending (active) services + the current day's service (even if paid)
+  const sortedServices = Object.values(appState.services)
+    .filter(s => s.status !== 'deleted')
+    .sort((a, b) => a.client.localeCompare(b.client));
+    
+  sortedServices.forEach(s => {
+    // Only include if it's pending OR if it's already selected on this event
+    const isSelected = event && event.serviceId === s.id;
+    if (s.status === 'pending' || isSelected) {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `Cliente: ${s.client} (${s.description || 'Sem Descrição'})` + (s.status === 'paid' ? ' [Finalizado]' : '');
+      srvSelect.appendChild(opt);
+    }
+  });
+
+  // Clear new service input fields
   document.getElementById('srv-client').value = '';
   document.getElementById('srv-description').value = '';
   document.getElementById('srv-value').value = '';
   document.getElementById('srv-status').value = 'pending';
+  document.getElementById('new-service-fields').style.display = 'none';
   
   // Reset helper elements
   const helperCheckbox = document.getElementById('srv-has-helper');
@@ -237,12 +327,11 @@ function openDayModal(dateStr) {
     // Toggle service fields visibility
     toggleServiceFields(event.type);
     
-    // Pre-fill service details if they exist
-    if (event.service) {
-      document.getElementById('srv-client').value = event.service.client || '';
-      document.getElementById('srv-description').value = event.service.description || '';
-      document.getElementById('srv-value').value = event.service.value || '';
-      document.getElementById('srv-status').value = event.service.status || 'pending';
+    // Pre-select service
+    if (event.serviceId && appState.services[event.serviceId]) {
+      srvSelect.value = event.serviceId;
+    } else {
+      srvSelect.value = 'none';
     }
     
     // Pre-fill helper details if they exist
@@ -259,6 +348,7 @@ function openDayModal(dateStr) {
     // Default form setup for new entry
     document.querySelector('input[name="modal-work-type"][value="father"]').checked = true;
     toggleServiceFields('father');
+    srvSelect.value = 'none';
     document.getElementById('modal-delete-day-btn').style.display = 'none';
   }
   
@@ -272,7 +362,7 @@ function closeDayModal() {
 
 function toggleServiceFields(workType) {
   const serviceFields = document.getElementById('painting-service-fields');
-  if (workType === 'own') {
+  if (workType === 'own' || workType === 'father') {
     serviceFields.classList.add('active');
   } else {
     serviceFields.classList.remove('active');
@@ -288,32 +378,57 @@ function renderServices() {
   const filterMonth = document.getElementById('service-filter-month').value;
   const filterStatus = document.getElementById('service-filter-status').value;
   
-  // Extract all own-work events with service info
-  let services = [];
+  // Mapear dias trabalhados para cada serviço
+  const serviceDaysMap = {}; // key: serviceId, value: Array de dateStr
   Object.keys(appState.events).forEach(dateStr => {
     const event = appState.events[dateStr];
-    if (event.type === 'own' && event.service) {
-      services.push({
-        date: dateStr,
-        ...event.service
-      });
+    if (event && event.type !== 'deleted' && event.serviceId) {
+      if (!serviceDaysMap[event.serviceId]) {
+        serviceDaysMap[event.serviceId] = [];
+      }
+      serviceDaysMap[event.serviceId].push(dateStr);
     }
   });
   
-  // Sort services by date descending
-  services.sort((a, b) => b.date.localeCompare(a.date));
+  let servicesList = [];
   
-  // Filter services
-  let filteredServices = services.filter(srv => {
-    // Search query match (Client or Description)
+  Object.keys(appState.services).forEach(id => {
+    const srv = appState.services[id];
+    if (srv.status === 'deleted') return;
+    
+    const days = serviceDaysMap[id] || [];
+    days.sort(); // Ordenar dias do serviço por ordem cronológica crescente
+    
+    // Data de referência (mais recente) ou data de modificação
+    let refDate = "";
+    if (days.length > 0) {
+      refDate = days[days.length - 1];
+    } else {
+      const updatedDate = new Date(srv.updatedAt || Date.now());
+      refDate = getLocalDateString(updatedDate);
+    }
+    
+    servicesList.push({
+      ...srv,
+      days: days,
+      refDate: refDate
+    });
+  });
+  
+  // Ordenar serviços: pendentes primeiro, e depois por data de referência decrescente
+  servicesList.sort((a, b) => {
+    if (a.status === 'pending' && b.status === 'paid') return -1;
+    if (a.status === 'paid' && b.status === 'pending') return 1;
+    return b.refDate.localeCompare(a.refDate);
+  });
+  
+  // Filtrar serviços
+  let filteredServices = servicesList.filter(srv => {
     const clientMatch = srv.client && srv.client.toLowerCase().includes(searchQuery);
     const descMatch = srv.description && srv.description.toLowerCase().includes(searchQuery);
     const matchesSearch = searchQuery === '' || clientMatch || descMatch;
     
-    // Month match (filterMonth: 'all' or 'YYYY-MM')
-    const matchesMonth = filterMonth === 'all' || srv.date.startsWith(filterMonth);
-    
-    // Status match (filterStatus: 'all', 'paid', 'pending')
+    const matchesMonth = filterMonth === 'all' || srv.refDate.startsWith(filterMonth);
     const matchesStatus = filterStatus === 'all' || srv.status === filterStatus;
     
     return matchesSearch && matchesMonth && matchesStatus;
@@ -333,39 +448,94 @@ function renderServices() {
     return;
   }
   
-  // Render cards
+  // Renderizar os cards
   filteredServices.forEach(srv => {
     const card = document.createElement('div');
     card.classList.add('service-item-card');
-    card.dataset.date = srv.date;
     
-    const formattedDate = formatDateLong(srv.date);
     const valueBRL = formatCurrency(srv.value);
-    const statusText = srv.status === 'paid' ? 'Pago' : 'Pendente';
+    const statusText = srv.status === 'paid' ? 'Finalizado (Pago)' : 'Pendente (Aberto)';
     const statusClass = srv.status === 'paid' ? 'status-paid' : 'status-pending';
+    
+    // Formatar dias de trabalho
+    let daysHTML = "";
+    if (srv.days.length > 0) {
+      const formattedDays = srv.days.map(d => {
+        const [,, day] = d.split('-');
+        return day;
+      }).join(', ');
+      
+      const [year, month] = srv.refDate.split('-');
+      daysHTML = `<div class="service-days-worked" style="font-size: 0.8rem; margin: 0.6rem 0; color: var(--text-secondary);">📅 <strong>Dias trabalhados (${srv.days.length}):</strong> ${formattedDays} de ${MONTH_NAMES[Number(month) - 1]}</div>`;
+    } else {
+      daysHTML = `<div class="service-days-worked text-warning" style="font-size: 0.8rem; margin: 0.6rem 0;">⚠️ Nenhuma diária vinculada a este serviço ainda.</div>`;
+    }
     
     card.innerHTML = `
       <div class="service-item-header">
         <div class="service-title-container">
-          <span class="service-date">${formattedDate}</span>
-          <h4 class="service-client">${srv.client || 'Sem nome do cliente'}</h4>
+          <h4 class="service-client" style="margin: 0; font-size: 1.05rem;">${srv.client || 'Sem nome do cliente'}</h4>
+          <span class="service-status-sub" style="font-size: 0.72rem; color: var(--text-secondary);">${statusText}</span>
         </div>
-        <span class="status-badge ${statusClass}">${statusText}</span>
+        <span class="status-badge ${statusClass}">${srv.status === 'paid' ? 'Pago' : 'Pendente'}</span>
       </div>
-      ${srv.description ? `<p class="service-desc">${srv.description}</p>` : ''}
-      <div class="service-footer">
-        <span class="service-value-lbl">Valor do serviço:</span>
-        <span class="service-value">${valueBRL}</span>
+      ${srv.description ? `<p class="service-desc" style="margin: 0.5rem 0 0 0; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${srv.description}</p>` : ''}
+      ${daysHTML}
+      <div class="service-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-card); padding-top: 0.8rem;">
+        <div>
+          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Valor do Serviço:</span>
+          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: var(--color-brand-green);">${valueBRL}</span>
+        </div>
+        <div class="service-actions">
+          ${srv.status === 'pending' ? `
+            <button class="btn btn-secondary btn-xs finish-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(0, 168, 107, 0.1); border: 1px solid var(--color-brand-green); color: var(--color-brand-green);">
+              ✅ Finalizar
+            </button>
+          ` : `
+            <button class="btn btn-text text-warning btn-xs reopen-srv-btn" data-id="${srv.id}" style="font-size: 0.75rem; padding: 0.4rem; color: var(--color-brand-orange);">
+              Reabrir
+            </button>
+          `}
+        </div>
       </div>
     `;
     
-    // Click card to edit this event in calendar view
+    // Event handlers para botões
+    const finishBtn = card.querySelector('.finish-srv-btn');
+    if (finishBtn) {
+      finishBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        changeServiceStatus(srv.id, 'paid');
+      });
+    }
+    
+    const reopenBtn = card.querySelector('.reopen-srv-btn');
+    if (reopenBtn) {
+      reopenBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        changeServiceStatus(srv.id, 'pending');
+      });
+    }
+    
+    // Clicar no card abre o dia trabalhado mais recente para edição rápida
     card.addEventListener('click', () => {
-      openDayModal(srv.date);
+      if (srv.days.length > 0) {
+        openDayModal(srv.days[srv.days.length - 1]);
+      }
     });
     
     container.appendChild(card);
   });
+}
+
+function changeServiceStatus(serviceId, newStatus) {
+  if (appState.services[serviceId]) {
+    appState.services[serviceId].status = newStatus;
+    appState.services[serviceId].updatedAt = Date.now();
+    saveState();
+    showToast(newStatus === 'paid' ? "🎉 Serviço marcado como finalizado!" : "🔓 Serviço reaberto com sucesso!");
+    renderServices();
+  }
 }
 
 // Populate service filter dropdowns dynamically based on recorded dates
@@ -434,14 +604,6 @@ function renderReports() {
         if (event.type === 'father') countFather++;
         if (event.type === 'own') {
           countOwn++;
-          if (event.service) {
-            const val = Number(event.service.value) || 0;
-            if (event.service.status === 'paid') {
-              ownPaidSum += val;
-            } else {
-              ownPendingSum += val;
-            }
-          }
         }
         if (event.type === 'off') countOff++;
         
@@ -457,6 +619,38 @@ function renderReports() {
           }
           helperTotal += hRate;
         }
+      }
+    }
+  });
+
+  // Calculate own services sums based on services whose last worked date is in this month
+  const serviceDaysMap = {};
+  Object.keys(appState.events).forEach(dateStr => {
+    const event = appState.events[dateStr];
+    if (event && event.type !== 'deleted' && event.serviceId) {
+      if (!serviceDaysMap[event.serviceId]) {
+        serviceDaysMap[event.serviceId] = [];
+      }
+      serviceDaysMap[event.serviceId].push(dateStr);
+    }
+  });
+
+  Object.keys(appState.services).forEach(id => {
+    const srv = appState.services[id];
+    if (srv.status === 'deleted') return;
+    
+    const days = serviceDaysMap[id] || [];
+    if (days.length === 0) return;
+    
+    days.sort();
+    const lastWorkedDate = days[days.length - 1];
+    
+    if (lastWorkedDate.startsWith(selectedYM)) {
+      const val = Number(srv.value) || 0;
+      if (srv.status === 'paid') {
+        ownPaidSum += val;
+      } else {
+        ownPendingSum += val;
       }
     }
   });
@@ -795,29 +989,50 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
+  // Listen to service select change to show/hide new service fields
+  document.getElementById('srv-select').addEventListener('change', (e) => {
+    const val = e.target.value;
+    const newServiceFields = document.getElementById('new-service-fields');
+    if (val === 'new') {
+      newServiceFields.style.display = 'block';
+    } else {
+      newServiceFields.style.display = 'none';
+    }
+  });
+  
   // Modal Save Button Handler
   document.getElementById('modal-save-btn').addEventListener('click', () => {
     const workType = document.querySelector('input[name="modal-work-type"]:checked').value;
     
     // Save service info
-    let serviceData = null;
-    if (workType === 'own') {
-      const client = document.getElementById('srv-client').value.trim();
-      const desc = document.getElementById('srv-description').value.trim();
-      const val = Number(document.getElementById('srv-value').value);
-      const status = document.getElementById('srv-status').value;
+    let serviceId = null;
+    if (workType === 'own' || workType === 'father') {
+      const srvSelectVal = document.getElementById('srv-select').value;
       
-      if (!client) {
-        showToast("⚠️ Por favor, informe o nome do cliente ou casa!");
-        return;
+      if (srvSelectVal === 'new') {
+        const client = document.getElementById('srv-client').value.trim();
+        const desc = document.getElementById('srv-description').value.trim();
+        const val = Number(document.getElementById('srv-value').value);
+        const status = document.getElementById('srv-status').value;
+        
+        if (!client) {
+          showToast("⚠️ Por favor, informe o nome do cliente ou casa do novo serviço!");
+          return;
+        }
+        
+        serviceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        
+        appState.services[serviceId] = {
+          id: serviceId,
+          client: client,
+          description: desc,
+          value: isNaN(val) ? 0 : val,
+          status: status,
+          updatedAt: Date.now()
+        };
+      } else if (srvSelectVal !== 'none') {
+        serviceId = srvSelectVal;
       }
-      
-      serviceData = {
-        client: client,
-        description: desc,
-        value: isNaN(val) ? 0 : val,
-        status: status
-      };
     }
     
     // Save helper info
@@ -835,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save to State
     appState.events[selectedModalDate] = {
       type: workType,
-      service: serviceData,
+      serviceId: serviceId,
       helper: helperData,
       updatedAt: Date.now()
     };
@@ -945,6 +1160,29 @@ function mergeEvents(localEvents, remoteEvents) {
   return merged;
 }
 
+// Merge local and remote services based on updatedAt timestamp
+function mergeServices(localServices, remoteServices) {
+  const merged = { ...localServices };
+  
+  Object.keys(remoteServices).forEach(srvId => {
+    const localSrv = localServices[srvId];
+    const remoteSrv = remoteServices[srvId];
+    
+    if (!localSrv) {
+      merged[srvId] = remoteSrv;
+    } else {
+      const localTime = localSrv.updatedAt || 0;
+      const remoteTime = remoteSrv.updatedAt || 0;
+      
+      if (remoteTime > localTime) {
+        merged[srvId] = remoteSrv;
+      }
+    }
+  });
+  
+  return merged;
+}
+
 // Function to trigger synchronization
 async function syncWithGoogleSheets() {
   // If there is text in the input that hasn't been saved to settings yet, save it first
@@ -992,25 +1230,34 @@ async function syncWithGoogleSheets() {
     }
     
     const remoteEvents = result.events || {};
+    const remoteServices = result.services || {};
     const localEvents = appState.events;
+    const localServices = appState.services;
     
     // 2. Check if local is empty and remote has data (First synchronization on new device)
-    const hasLocalData = Object.keys(localEvents).filter(k => localEvents[k].type !== 'deleted').length > 0;
-    const hasRemoteData = Object.keys(remoteEvents).filter(k => remoteEvents[k].type !== 'deleted').length > 0;
+    const hasLocalData = (Object.keys(localEvents).filter(k => localEvents[k].type !== 'deleted').length > 0) ||
+                         (Object.keys(localServices).filter(k => localServices[k].status !== 'deleted').length > 0);
+                         
+    const hasRemoteData = (Object.keys(remoteEvents).filter(k => remoteEvents[k].type !== 'deleted').length > 0) ||
+                          (Object.keys(remoteServices).filter(k => remoteServices[k].status !== 'deleted').length > 0);
     
     let consolidatedEvents = {};
+    let consolidatedServices = {};
     if (!hasLocalData && hasRemoteData) {
       // Ask user if they want to pull remote data
       if (confirm("Detectamos dados na sua planilha online, mas este celular está sem registros. Deseja baixar os dados da nuvem para este celular?")) {
         consolidatedEvents = remoteEvents;
+        consolidatedServices = remoteServices;
         showToast("📥 Dados baixados do Google Sheets!");
       } else {
         // User chose to overwrite remote with empty local
         consolidatedEvents = localEvents;
+        consolidatedServices = localServices;
       }
     } else {
       // Ordinary merge based on timestamps
       consolidatedEvents = mergeEvents(localEvents, remoteEvents);
+      consolidatedServices = mergeServices(localServices, remoteServices);
     }
     
     // 3. Send consolidated data back to Google Sheets (POST)
@@ -1021,7 +1268,7 @@ async function syncWithGoogleSheets() {
       headers: {
         'Content-Type': 'text/plain' // simple content-type to avoid CORS preflight options block
       },
-      body: JSON.stringify({ events: consolidatedEvents })
+      body: JSON.stringify({ events: consolidatedEvents, services: consolidatedServices })
     });
     
     if (!postResponse.ok) throw new Error("Erro na requisição POST");
@@ -1033,6 +1280,7 @@ async function syncWithGoogleSheets() {
     
     // 4. Update local state
     appState.events = consolidatedEvents;
+    appState.services = consolidatedServices;
     
     const nowStr = new Date().toLocaleString('pt-BR');
     appState.settings.lastSync = nowStr;
