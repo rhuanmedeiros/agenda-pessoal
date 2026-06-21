@@ -947,6 +947,17 @@ function mergeEvents(localEvents, remoteEvents) {
 
 // Function to trigger synchronization
 async function syncWithGoogleSheets() {
+  // If there is text in the input that hasn't been saved to settings yet, save it first
+  const sheetsUrlInput = document.getElementById('cfg-sheets-url');
+  if (sheetsUrlInput && sheetsUrlInput.value.trim() !== '') {
+    const inputUrl = sheetsUrlInput.value.trim();
+    if (appState.settings.sheetsUrl !== inputUrl) {
+      appState.settings.sheetsUrl = inputUrl;
+      saveState();
+      updateSyncHeaderBtnVisibility();
+    }
+  }
+
   const sheetsUrl = appState.settings.sheetsUrl;
   if (!sheetsUrl || sheetsUrl.trim() === '') {
     showToast("⚠️ URL do Google Sheets não configurada!");
