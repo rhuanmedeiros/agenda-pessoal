@@ -12,3 +12,7 @@ Thumbs.db
 # Configurações locais de IDEs
 .vscode/
 .idea/
+
+# Composio & Env
+.env*
+.composio/

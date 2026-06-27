@@ -1383,3 +1383,24 @@ body.light-theme .toast {
   margin-right: 6px;
   vertical-align: middle;
 }
+
+/* --- DAILY NOTES IN SERVICES TAB --- */
+.day-bullet-item {
+  position: relative;
+  padding: 0.25rem 0 0.25rem 0.2rem !important;
+}
+
+.day-bullet-item:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.day-bullet-item:hover strong {
+  text-decoration: underline;
+}
+
+.day-desc-text {
+  font-style: italic;
+  opacity: 0.85;
+}
+

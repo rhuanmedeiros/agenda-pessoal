@@ -70,7 +70,21 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem('agenda_pessoal_state', JSON.stringify(appState));
+  if (!window.isSyncingInProgress) {
+    autoSync();
+  }
 }
+
+function autoSync() {
+  const sheetsUrl = appState.settings.sheetsUrl;
+  if (!sheetsUrl || sheetsUrl.trim() === '') return;
+  
+  if (window.autoSyncTimeout) clearTimeout(window.autoSyncTimeout);
+  window.autoSyncTimeout = setTimeout(() => {
+    syncWithGoogleSheets(true);
+  }, 1500);
+}
+
 
 function migrateOldState() {
   if (!appState.services) {
@@ -318,6 +332,9 @@ function openDayModal(dateStr) {
   document.getElementById('srv-helper-rate').value = appState.settings.helperRate;
   document.getElementById('helper-details-fields').classList.remove('active');
   
+  // Reset daily description
+  document.getElementById('day-description').value = '';
+  
   // Pre-fill fields if event exists
   if (event && event.type !== 'deleted') {
     // Select radio button
@@ -342,6 +359,9 @@ function openDayModal(dateStr) {
       document.getElementById('helper-details-fields').classList.add('active');
     }
     
+    // Pre-fill daily description
+    document.getElementById('day-description').value = event.description || '';
+    
     // Show delete button
     document.getElementById('modal-delete-day-btn').style.display = 'block';
   } else {
@@ -349,6 +369,7 @@ function openDayModal(dateStr) {
     document.querySelector('input[name="modal-work-type"][value="father"]').checked = true;
     toggleServiceFields('father');
     srvSelect.value = 'none';
+    document.getElementById('day-description').value = '';
     document.getElementById('modal-delete-day-btn').style.display = 'none';
   }
   
@@ -457,16 +478,24 @@ function renderServices() {
     const statusText = srv.status === 'paid' ? 'Finalizado (Pago)' : 'Pendente (Aberto)';
     const statusClass = srv.status === 'paid' ? 'status-paid' : 'status-pending';
     
-    // Formatar dias de trabalho
+    // Formatar dias de trabalho com detalhamento
     let daysHTML = "";
     if (srv.days.length > 0) {
-      const formattedDays = srv.days.map(d => {
-        const [,, day] = d.split('-');
-        return day;
-      }).join(', ');
+      const listItems = srv.days.map(d => {
+        const [year, month, day] = d.split('-');
+        const ev = appState.events[d];
+        const dayDesc = ev && ev.description ? ` - <span class="day-desc-text" style="color: var(--text-primary);">${ev.description}</span>` : ' (sem descrição do dia)';
+        return `<li class="day-bullet-item" data-date="${d}"><strong style="color: var(--color-brand-orange);">Dia ${day}/${month}</strong>${dayDesc}</li>`;
+      }).join('');
       
-      const [year, month] = srv.refDate.split('-');
-      daysHTML = `<div class="service-days-worked" style="font-size: 0.8rem; margin: 0.6rem 0; color: var(--text-secondary);">📅 <strong>Dias trabalhados (${srv.days.length}):</strong> ${formattedDays} de ${MONTH_NAMES[Number(month) - 1]}</div>`;
+      daysHTML = `
+        <div class="service-days-worked" style="font-size: 0.8rem; margin: 0.6rem 0; color: var(--text-secondary);">
+          <div style="font-weight: 600; margin-bottom: 0.3rem;">📅 Dias trabalhados (${srv.days.length}) - clique no dia para editar:</div>
+          <ul style="margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 0.2rem;">
+            ${listItems}
+          </ul>
+        </div>
+      `;
     } else {
       daysHTML = `<div class="service-days-worked text-warning" style="font-size: 0.8rem; margin: 0.6rem 0;">⚠️ Nenhuma diária vinculada a este serviço ainda.</div>`;
     }
@@ -486,13 +515,16 @@ function renderServices() {
           <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Valor do Serviço:</span>
           <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: var(--color-brand-green);">${valueBRL}</span>
         </div>
-        <div class="service-actions">
+        <div class="service-actions" style="display: flex; gap: 0.4rem;">
+          <button class="btn btn-secondary btn-xs edit-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card); color: var(--text-primary);">
+            ✏️ Editar
+          </button>
           ${srv.status === 'pending' ? `
             <button class="btn btn-secondary btn-xs finish-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(0, 168, 107, 0.1); border: 1px solid var(--color-brand-green); color: var(--color-brand-green);">
               ✅ Finalizar
             </button>
           ` : `
-            <button class="btn btn-text text-warning btn-xs reopen-srv-btn" data-id="${srv.id}" style="font-size: 0.75rem; padding: 0.4rem; color: var(--color-brand-orange);">
+            <button class="btn btn-text text-warning btn-xs reopen-srv-btn" data-id="${srv.id}" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--color-brand-orange); background: rgba(245, 158, 11, 0.1); color: var(--color-brand-orange);">
               Reabrir
             </button>
           `}
@@ -501,6 +533,14 @@ function renderServices() {
     `;
     
     // Event handlers para botões
+    const editBtn = card.querySelector('.edit-srv-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openServiceModal(srv.id);
+      });
+    }
+
     const finishBtn = card.querySelector('.finish-srv-btn');
     if (finishBtn) {
       finishBtn.addEventListener('click', (e) => {
@@ -517,11 +557,23 @@ function renderServices() {
       });
     }
     
+    // Configurar cliques nos dias individuais
+    const dayItems = card.querySelectorAll('.day-bullet-item');
+    dayItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDayModal(item.dataset.date);
+      });
+    });
+    
     // Clicar no card abre o dia trabalhado mais recente para edição rápida
     card.addEventListener('click', () => {
       if (srv.days.length > 0) {
         openDayModal(srv.days[srv.days.length - 1]);
+      } else {
+        openServiceModal(srv.id);
       }
+    });
     });
     
     container.appendChild(card);
@@ -536,6 +588,46 @@ function changeServiceStatus(serviceId, newStatus) {
     showToast(newStatus === 'paid' ? "🎉 Serviço marcado como finalizado!" : "🔓 Serviço reaberto com sucesso!");
     renderServices();
   }
+}
+
+let selectedServiceId = '';
+
+function openServiceModal(serviceId) {
+  selectedServiceId = serviceId;
+  const srv = appState.services[serviceId];
+  if (!srv) return;
+  
+  document.getElementById('service-modal-title').textContent = "Editar Serviço";
+  document.getElementById('edit-srv-client').value = srv.client || '';
+  document.getElementById('edit-srv-description').value = srv.description || '';
+  document.getElementById('edit-srv-value').value = srv.value || '';
+  document.getElementById('edit-srv-status').value = srv.status || 'pending';
+  
+  // Show delete button
+  document.getElementById('service-modal-delete-btn').style.display = 'block';
+  
+  // Open modal
+  document.getElementById('service-modal').classList.add('active');
+}
+
+function openNewServiceModal() {
+  selectedServiceId = 'new';
+  
+  document.getElementById('service-modal-title').textContent = "Novo Serviço";
+  document.getElementById('edit-srv-client').value = '';
+  document.getElementById('edit-srv-description').value = '';
+  document.getElementById('edit-srv-value').value = '';
+  document.getElementById('edit-srv-status').value = 'pending';
+  
+  // Hide delete button for new service
+  document.getElementById('service-modal-delete-btn').style.display = 'none';
+  
+  // Open modal
+  document.getElementById('service-modal').classList.add('active');
+}
+
+function closeServiceModal() {
+  document.getElementById('service-modal').classList.remove('active');
 }
 
 // Populate service filter dropdowns dynamically based on recorded dates
@@ -970,6 +1062,97 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('day-modal').addEventListener('click', (e) => {
     if (e.target.id === 'day-modal') closeDayModal();
   });
+
+  // Service Modal Interactions
+  document.getElementById('service-modal-close-btn').addEventListener('click', closeServiceModal);
+  document.getElementById('service-modal-cancel-btn').addEventListener('click', closeServiceModal);
+  
+  document.getElementById('service-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'service-modal') closeServiceModal();
+  });
+  
+  // Service Modal Save Button Handler
+  document.getElementById('service-modal-save-btn').addEventListener('click', () => {
+    const client = document.getElementById('edit-srv-client').value.trim();
+    const desc = document.getElementById('edit-srv-description').value.trim();
+    const val = Number(document.getElementById('edit-srv-value').value);
+    const status = document.getElementById('edit-srv-status').value;
+    
+    if (!client) {
+      showToast("⚠️ Por favor, informe o nome do cliente ou casa!");
+      return;
+    }
+    
+    if (selectedServiceId === 'new') {
+      // Create new service
+      const serviceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      appState.services[serviceId] = {
+        id: serviceId,
+        client: client,
+        description: desc,
+        value: isNaN(val) ? 0 : val,
+        status: status,
+        updatedAt: Date.now()
+      };
+      showToast("🎉 Serviço criado com sucesso!");
+    } else {
+      // Update existing service
+      if (appState.services[selectedServiceId]) {
+        appState.services[selectedServiceId].client = client;
+        appState.services[selectedServiceId].description = desc;
+        appState.services[selectedServiceId].value = isNaN(val) ? 0 : val;
+        appState.services[selectedServiceId].status = status;
+        appState.services[selectedServiceId].updatedAt = Date.now();
+        showToast("✏️ Serviço atualizado com sucesso!");
+      }
+    }
+    
+    saveState();
+    closeServiceModal();
+    
+    // Refresh active tab views
+    if (activeTab === 'tab-calendar') {
+      renderCalendar();
+    } else if (activeTab === 'tab-services') {
+      updateServiceFilterDropdowns();
+      renderServices();
+    } else if (activeTab === 'tab-reports') {
+      renderReports();
+    }
+  });
+  
+  // Service Modal Delete Button Handler
+  document.getElementById('service-modal-delete-btn').addEventListener('click', () => {
+    if (confirm("Deseja realmente excluir este serviço? As diárias vinculadas a ele continuarão registradas, mas perderão o vínculo.")) {
+      if (appState.services[selectedServiceId]) {
+        appState.services[selectedServiceId].status = 'deleted';
+        appState.services[selectedServiceId].updatedAt = Date.now();
+        
+        // Remove link from events
+        Object.keys(appState.events).forEach(dateStr => {
+          const ev = appState.events[dateStr];
+          if (ev && ev.serviceId === selectedServiceId) {
+            ev.serviceId = null;
+            ev.updatedAt = Date.now();
+          }
+        });
+        
+        saveState();
+        closeServiceModal();
+        showToast("🗑️ Serviço excluído.");
+        
+        // Refresh active tab views
+        if (activeTab === 'tab-calendar') {
+          renderCalendar();
+        } else if (activeTab === 'tab-services') {
+          updateServiceFilterDropdowns();
+          renderServices();
+        } else if (activeTab === 'tab-reports') {
+          renderReports();
+        }
+      }
+    }
+  });
   
   // Listen for work type radio checks to toggle services form inputs
   const workTypeRadios = document.querySelectorAll('input[name="modal-work-type"]');
@@ -1046,12 +1229,15 @@ document.addEventListener('DOMContentLoaded', () => {
         rate: isNaN(hRate) ? appState.settings.helperRate : hRate
       };
     }
+
+    const dayDescription = document.getElementById('day-description').value.trim();
     
     // Save to State
     appState.events[selectedModalDate] = {
       type: workType,
       serviceId: serviceId,
       helper: helperData,
+      description: dayDescription,
       updatedAt: Date.now()
     };
     
@@ -1096,11 +1282,9 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('service-filter-month').addEventListener('change', renderServices);
   document.getElementById('service-filter-status').addEventListener('change', renderServices);
   
-  // "+ Novo Serviço" button opens modal for today or first day
+  // "+ Novo Serviço" button opens modal to create service directly
   document.getElementById('add-service-btn').addEventListener('click', () => {
-    const today = new Date();
-    const todayStr = getLocalDateString(today);
-    openDayModal(todayStr);
+    openNewServiceModal();
   });
   
   // 8. Reports Month Selector listener
@@ -1184,21 +1368,24 @@ function mergeServices(localServices, remoteServices) {
 }
 
 // Function to trigger synchronization
-async function syncWithGoogleSheets() {
+async function syncWithGoogleSheets(isSilent = false) {
   // If there is text in the input that hasn't been saved to settings yet, save it first
   const sheetsUrlInput = document.getElementById('cfg-sheets-url');
   if (sheetsUrlInput && sheetsUrlInput.value.trim() !== '') {
     const inputUrl = sheetsUrlInput.value.trim();
     if (appState.settings.sheetsUrl !== inputUrl) {
       appState.settings.sheetsUrl = inputUrl;
+      // Temporarily mark syncing to avoid infinite loop when saveState is called
+      window.isSyncingInProgress = true;
       saveState();
+      window.isSyncingInProgress = false;
       updateSyncHeaderBtnVisibility();
     }
   }
 
   const sheetsUrl = appState.settings.sheetsUrl;
   if (!sheetsUrl || sheetsUrl.trim() === '') {
-    showToast("⚠️ URL do Google Sheets não configurada!");
+    if (!isSilent) showToast("⚠️ URL do Google Sheets não configurada!");
     return;
   }
   
@@ -1212,7 +1399,7 @@ async function syncWithGoogleSheets() {
   if (bodyIcon) bodyIcon.classList.add('spinning');
   if (bodySyncBtn) bodySyncBtn.disabled = true;
   
-  showToast("🔄 Sincronizando com a Nuvem...");
+  if (!isSilent) showToast("🔄 Sincronizando com a Nuvem...");
   
   try {
     // 1. Fetch data from Google Sheets (GET)
@@ -1244,15 +1431,20 @@ async function syncWithGoogleSheets() {
     let consolidatedEvents = {};
     let consolidatedServices = {};
     if (!hasLocalData && hasRemoteData) {
-      // Ask user if they want to pull remote data
-      if (confirm("Detectamos dados na sua planilha online, mas este celular está sem registros. Deseja baixar os dados da nuvem para este celular?")) {
+      if (isSilent) {
         consolidatedEvents = remoteEvents;
         consolidatedServices = remoteServices;
-        showToast("📥 Dados baixados do Google Sheets!");
       } else {
-        // User chose to overwrite remote with empty local
-        consolidatedEvents = localEvents;
-        consolidatedServices = localServices;
+        // Ask user if they want to pull remote data
+        if (confirm("Detectamos dados na sua planilha online, mas este celular está sem registros. Deseja baixar os dados da nuvem para este celular?")) {
+          consolidatedEvents = remoteEvents;
+          consolidatedServices = remoteServices;
+          showToast("📥 Dados baixados do Google Sheets!");
+        } else {
+          // User chose to overwrite remote with empty local
+          consolidatedEvents = localEvents;
+          consolidatedServices = localServices;
+        }
       }
     } else {
       // Ordinary merge based on timestamps
@@ -1279,12 +1471,14 @@ async function syncWithGoogleSheets() {
     }
     
     // 4. Update local state
+    window.isSyncingInProgress = true;
     appState.events = consolidatedEvents;
     appState.services = consolidatedServices;
     
     const nowStr = new Date().toLocaleString('pt-BR');
     appState.settings.lastSync = nowStr;
     saveState();
+    window.isSyncingInProgress = false;
     
     // 5. Update UI
     const syncStatusText = document.getElementById('sync-status-text');
@@ -1295,11 +1489,11 @@ async function syncWithGoogleSheets() {
     else if (activeTab === 'tab-services') renderServices();
     else if (activeTab === 'tab-reports') renderReports();
     
-    showToast("☁️ Sincronizado com sucesso!");
+    if (!isSilent) showToast("☁️ Sincronizado com sucesso!");
     
   } catch (error) {
     console.error("Erro na sincronização:", error);
-    showToast("❌ Erro ao sincronizar: " + error.message);
+    if (!isSilent) showToast("❌ Erro ao sincronizar: " + error.message);
   } finally {
     // Stop spinning icons
     if (headerIcon) headerIcon.classList.remove('spinning');
