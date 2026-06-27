@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "agenda-pessoal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "http-server", "-p", "8080", "-a", "0.0.0.0", "-c-1"],
+      "port": 8080
+    }
+  ]
+}

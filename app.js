@@ -6,7 +6,7 @@
 // --- STATE MANAGEMENT ---
 let appState = {
   events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', serviceId: null, helper: null, updatedAt: 0 }
-  services: {}, // key: 'service_id', value: { id, client, description, value, status, updatedAt }
+  services: {}, // key: 'service_id', value: { id, client, address, contact, notes, description, value, valueReceived, status, updatedAt }
   settings: {
     baseSalary: 3000,
     dayRate: 150,
@@ -17,6 +17,9 @@ let appState = {
     lastSync: ''
   }
 };
+
+// Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
+const APP_VERSION = '1.1.0';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -143,7 +146,18 @@ function migrateOldState() {
       delete event.service;
     }
   });
-  
+
+  // Garante os novos campos da obra em todos os serviços (compat com dados antigos)
+  Object.keys(appState.services).forEach(id => {
+    const s = appState.services[id];
+    if (s.address === undefined) s.address = '';
+    if (s.contact === undefined) s.contact = '';
+    if (s.valueReceived === undefined) s.valueReceived = 0;
+    // `notes` reaproveita a antiga `description`; mantém os dois espelhados por compat de sync
+    if (s.notes === undefined) s.notes = s.description || '';
+    if (s.description === undefined) s.description = s.notes || '';
+  });
+
   if (migratedCount > 0) {
     console.log(`Migracao concluida: ${migratedCount} servicos legados criados.`);
     saveState();
@@ -313,14 +327,13 @@ function openDayModal(dateStr) {
     if (s.status === 'pending' || isSelected) {
       const opt = document.createElement('option');
       opt.value = s.id;
-      opt.textContent = `Cliente: ${s.client} (${s.description || 'Sem Descrição'})` + (s.status === 'paid' ? ' [Finalizado]' : '');
+      opt.textContent = (s.client || 'Sem nome') + (s.status === 'paid' ? ' [Finalizado]' : '');
       srvSelect.appendChild(opt);
     }
   });
 
   // Clear new service input fields
   document.getElementById('srv-client').value = '';
-  document.getElementById('srv-description').value = '';
   document.getElementById('srv-value').value = '';
   document.getElementById('srv-status').value = 'pending';
   document.getElementById('new-service-fields').style.display = 'none';
@@ -500,6 +513,34 @@ function renderServices() {
       daysHTML = `<div class="service-days-worked text-warning" style="font-size: 0.8rem; margin: 0.6rem 0;">⚠️ Nenhuma diária vinculada a este serviço ainda.</div>`;
     }
     
+    // Linha de detalhes da obra (endereço / contato)
+    const srvNotes = srv.notes || srv.description || '';
+    const metaParts = [];
+    if (srv.address) metaParts.push(`📍 ${srv.address}`);
+    if (srv.contact) metaParts.push(`📞 ${srv.contact}`);
+    const metaHTML = metaParts.length > 0
+      ? `<div class="service-meta" style="margin: 0.4rem 0 0 0; font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.15rem;">${metaParts.map(p => `<span>${p}</span>`).join('')}</div>`
+      : '';
+
+    // Rodapé de valores: mostra recebido/falta quando há adiantamento
+    const received = Number(srv.valueReceived) || 0;
+    const totalVal = Number(srv.value) || 0;
+    let valueBlockHTML;
+    if (received > 0) {
+      const remaining = Math.max(totalVal - received, 0);
+      valueBlockHTML = `
+        <div>
+          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Recebido ${formatCurrency(received)} de ${valueBRL}</span>
+          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: ${remaining > 0 ? 'var(--color-brand-orange)' : 'var(--color-brand-green)'};">${remaining > 0 ? 'Falta ' + formatCurrency(remaining) : 'Quitado ✅'}</span>
+        </div>`;
+    } else {
+      valueBlockHTML = `
+        <div>
+          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Valor do Serviço:</span>
+          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: var(--color-brand-green);">${valueBRL}</span>
+        </div>`;
+    }
+
     card.innerHTML = `
       <div class="service-item-header">
         <div class="service-title-container">
@@ -508,13 +549,11 @@ function renderServices() {
         </div>
         <span class="status-badge ${statusClass}">${srv.status === 'paid' ? 'Pago' : 'Pendente'}</span>
       </div>
-      ${srv.description ? `<p class="service-desc" style="margin: 0.5rem 0 0 0; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${srv.description}</p>` : ''}
+      ${metaHTML}
+      ${srvNotes ? `<p class="service-desc" style="margin: 0.5rem 0 0 0; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${srvNotes}</p>` : ''}
       ${daysHTML}
       <div class="service-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-card); padding-top: 0.8rem;">
-        <div>
-          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Valor do Serviço:</span>
-          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: var(--color-brand-green);">${valueBRL}</span>
-        </div>
+        ${valueBlockHTML}
         <div class="service-actions" style="display: flex; gap: 0.4rem;">
           <button class="btn btn-secondary btn-xs edit-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card); color: var(--text-primary);">
             ✏️ Editar
@@ -574,8 +613,7 @@ function renderServices() {
         openServiceModal(srv.id);
       }
     });
-    });
-    
+
     container.appendChild(card);
   });
 }
@@ -599,10 +637,13 @@ function openServiceModal(serviceId) {
   
   document.getElementById('service-modal-title').textContent = "Editar Serviço";
   document.getElementById('edit-srv-client').value = srv.client || '';
-  document.getElementById('edit-srv-description').value = srv.description || '';
+  document.getElementById('edit-srv-address').value = srv.address || '';
+  document.getElementById('edit-srv-contact').value = srv.contact || '';
+  document.getElementById('edit-srv-description').value = srv.notes || srv.description || '';
   document.getElementById('edit-srv-value').value = srv.value || '';
+  document.getElementById('edit-srv-value-received').value = srv.valueReceived || '';
   document.getElementById('edit-srv-status').value = srv.status || 'pending';
-  
+
   // Show delete button
   document.getElementById('service-modal-delete-btn').style.display = 'block';
   
@@ -615,10 +656,13 @@ function openNewServiceModal() {
   
   document.getElementById('service-modal-title').textContent = "Novo Serviço";
   document.getElementById('edit-srv-client').value = '';
+  document.getElementById('edit-srv-address').value = '';
+  document.getElementById('edit-srv-contact').value = '';
   document.getElementById('edit-srv-description').value = '';
   document.getElementById('edit-srv-value').value = '';
+  document.getElementById('edit-srv-value-received').value = '';
   document.getElementById('edit-srv-status').value = 'pending';
-  
+
   // Hide delete button for new service
   document.getElementById('service-modal-delete-btn').style.display = 'none';
   
@@ -874,6 +918,10 @@ function loadSettingsToUI() {
   
   const lastSyncText = document.getElementById('sync-status-text');
   if (lastSyncText) lastSyncText.textContent = `Última sincronização: ${appState.settings.lastSync || 'Nunca'}`;
+
+  // Versão do app
+  const versionLabel = document.getElementById('app-version-label');
+  if (versionLabel) versionLabel.textContent = `Versão ${APP_VERSION} (PWA)`;
 }
 
 function saveSettingsFromUI() {
@@ -1074,23 +1122,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // Service Modal Save Button Handler
   document.getElementById('service-modal-save-btn').addEventListener('click', () => {
     const client = document.getElementById('edit-srv-client').value.trim();
-    const desc = document.getElementById('edit-srv-description').value.trim();
+    const address = document.getElementById('edit-srv-address').value.trim();
+    const contact = document.getElementById('edit-srv-contact').value.trim();
+    const notes = document.getElementById('edit-srv-description').value.trim();
     const val = Number(document.getElementById('edit-srv-value').value);
+    const received = Number(document.getElementById('edit-srv-value-received').value);
     const status = document.getElementById('edit-srv-status').value;
-    
+
     if (!client) {
       showToast("⚠️ Por favor, informe o nome do cliente ou casa!");
       return;
     }
-    
+
     if (selectedServiceId === 'new') {
       // Create new service
       const serviceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       appState.services[serviceId] = {
         id: serviceId,
         client: client,
-        description: desc,
+        address: address,
+        contact: contact,
+        notes: notes,
+        description: notes, // espelhado por compat de sync
         value: isNaN(val) ? 0 : val,
+        valueReceived: isNaN(received) ? 0 : received,
         status: status,
         updatedAt: Date.now()
       };
@@ -1098,11 +1153,16 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       // Update existing service
       if (appState.services[selectedServiceId]) {
-        appState.services[selectedServiceId].client = client;
-        appState.services[selectedServiceId].description = desc;
-        appState.services[selectedServiceId].value = isNaN(val) ? 0 : val;
-        appState.services[selectedServiceId].status = status;
-        appState.services[selectedServiceId].updatedAt = Date.now();
+        const s = appState.services[selectedServiceId];
+        s.client = client;
+        s.address = address;
+        s.contact = contact;
+        s.notes = notes;
+        s.description = notes; // espelhado por compat de sync
+        s.value = isNaN(val) ? 0 : val;
+        s.valueReceived = isNaN(received) ? 0 : received;
+        s.status = status;
+        s.updatedAt = Date.now();
         showToast("✏️ Serviço atualizado com sucesso!");
       }
     }
@@ -1194,22 +1254,25 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (srvSelectVal === 'new') {
         const client = document.getElementById('srv-client').value.trim();
-        const desc = document.getElementById('srv-description').value.trim();
         const val = Number(document.getElementById('srv-value').value);
         const status = document.getElementById('srv-status').value;
-        
+
         if (!client) {
           showToast("⚠️ Por favor, informe o nome do cliente ou casa do novo serviço!");
           return;
         }
-        
+
         serviceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-        
+
         appState.services[serviceId] = {
           id: serviceId,
           client: client,
-          description: desc,
+          address: '',
+          contact: '',
+          notes: '',
+          description: '',
           value: isNaN(val) ? 0 : val,
+          valueReceived: 0,
           status: status,
           updatedAt: Date.now()
         };
@@ -1297,6 +1360,15 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-file-input').addEventListener('change', handleImportFile);
   document.getElementById('clear-all-data-btn').addEventListener('click', clearAllData);
   
+  // Botão "Verificar atualizações"
+  const checkUpdatesBtn = document.getElementById('check-updates-btn');
+  if (checkUpdatesBtn) {
+    checkUpdatesBtn.addEventListener('click', () => {
+      showToast("🔄 Procurando atualizações...");
+      checkForUpdates(true);
+    });
+  }
+
   // Google Sheets Sync Event Listeners
   document.getElementById('sync-now-btn').addEventListener('click', syncWithGoogleSheets);
   const syncHeaderBtn = document.getElementById('sync-header-btn');
@@ -1502,11 +1574,75 @@ async function syncWithGoogleSheets(isSilent = false) {
   }
 }
 
-// --- SERVICE WORKER REGISTRATION (PWA) ---
+// --- SERVICE WORKER REGISTRATION (PWA) + AUTO-UPDATE ---
+let swRegistration = null;
+let updateReloading = false;
+// Havia um worker controlando a página no carregamento? (evita reload na 1ª instalação)
+const hadControllerAtLoad = 'serviceWorker' in navigator && !!navigator.serviceWorker.controller;
+
+function showUpdateBanner() {
+  // Evita banners duplicados
+  if (document.getElementById('update-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'update-banner';
+  banner.style.cssText = 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:9999;background:var(--color-brand-green,#00a86b);color:#fff;padding:0.7rem 1.1rem;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.3);font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:0.5rem;max-width:90%;';
+  banner.innerHTML = '🔄 Nova versão disponível — toque para atualizar';
+  banner.addEventListener('click', () => {
+    const waiting = swRegistration && swRegistration.waiting;
+    if (waiting) {
+      waiting.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      window.location.reload();
+    }
+  });
+  document.body.appendChild(banner);
+}
+
+function checkForUpdates(manual = false) {
+  if (!swRegistration) {
+    if (manual) showToast("⚠️ Atualizações indisponíveis neste navegador.");
+    return;
+  }
+  swRegistration.update()
+    .then(() => { if (manual) showToast("✅ Você já está na versão mais recente!"); })
+    .catch(() => { if (manual) showToast("❌ Não foi possível verificar agora."); });
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
-      .then(reg => console.log('Service Worker registrado!', reg))
+      .then(reg => {
+        swRegistration = reg;
+        console.log('Service Worker registrado!', reg);
+
+        // Já existe um worker aguardando (nova versão pronta)
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner();
+        }
+
+        // Detecta novo worker sendo instalado
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateBanner();
+            }
+          });
+        });
+      })
       .catch(err => console.warn('Erro ao registrar Service Worker:', err));
+
+    // Verifica atualizações ao voltar para o app
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') checkForUpdates(false);
+    });
+  });
+
+  // Quando o novo worker assume, recarrega para aplicar a nova versão
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (updateReloading || !hadControllerAtLoad) return;
+    updateReloading = true;
+    window.location.reload();
   });
 }
