@@ -4,6 +4,13 @@
  */
 
 // --- STATE MANAGEMENT ---
+// URLs do backend (Google Apps Script). Ao publicar uma nova IMPLANTAÇÃO, atualize aqui.
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwodc16Sbivl7kCKiB1GVZW4Z9T2jch2J4QEbmiwJUnDUq_49KhRYVcIMBqeI_3DcM3tw/exec';
+// URLs antigas que devem ser migradas automaticamente para a atual
+const OLD_SHEETS_URLS = [
+  'https://script.google.com/macros/s/AKfycbwoP4oME9fvoj80WNT6Iriqx-KXd8fO-1nzPjvUFVyX6Bw5aHJtCv3QbJqBARUKZqorlw/exec'
+];
+
 let appState = {
   events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', serviceId: null, helper: null, updatedAt: 0 }
   services: {}, // key: 'service_id', value: { id, client, address, contact, notes, description, value, valueReceived, status, updatedAt }
@@ -13,13 +20,13 @@ let appState = {
     helperRate: 120, // default wage for helper/father when working with you
     calcMethod: 'deduction', // 'deduction' | 'accumulation'
     theme: 'dark',
-    sheetsUrl: '',
+    sheetsUrl: SHEETS_URL,
     lastSync: ''
   }
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.2.0';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -53,6 +60,10 @@ function loadState() {
   }
   if (appState.settings.sheetsUrl === undefined) {
     appState.settings.sheetsUrl = '';
+  }
+  // Migra aparelhos com URL antiga (ou vazia) para o backend atual
+  if (!appState.settings.sheetsUrl || OLD_SHEETS_URLS.includes(appState.settings.sheetsUrl.trim())) {
+    appState.settings.sheetsUrl = SHEETS_URL;
   }
   if (appState.settings.lastSync === undefined) {
     appState.settings.lastSync = '';
