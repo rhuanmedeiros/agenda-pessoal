@@ -95,11 +95,15 @@ function renderReadableTabs_(events, services) {
   // --- Servicos ---
   var srvSheet = ss.getSheetByName('Servicos') || ss.insertSheet('Servicos');
   srvSheet.clearContents();
-  var srvHeader = ['id', 'cliente', 'endereco', 'contato', 'observacoes', 'valor', 'valor_recebido', 'status', 'atualizado_em'];
+  var srvHeader = ['id', 'cliente', 'endereco', 'contato', 'observacoes', 'valor', 'valor_recebido', 'total_materiais', 'status', 'atualizado_em'];
   var srvRows = [srvHeader];
   Object.keys(services).forEach(function (id) {
     var s = services[id] || {};
     if (s.status === 'deleted') return;
+    var matTotal = 0;
+    if (s.materials && s.materials.length) {
+      s.materials.forEach(function(m) { matTotal += Number(m.price) || 0; });
+    }
     srvRows.push([
       s.id || id,
       s.client || '',
@@ -108,6 +112,7 @@ function renderReadableTabs_(events, services) {
       s.notes || s.description || '',
       s.value || 0,
       s.valueReceived || 0,
+      matTotal,
       s.status || '',
       s.updatedAt ? new Date(s.updatedAt) : ''
     ]);

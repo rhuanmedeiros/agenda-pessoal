@@ -560,70 +560,223 @@
     </div>
   </div>
 
-  <!-- MODAL: REGISTRO/EDIÇÃO DE SERVIÇO DE PINTURA (ISOLADO) -->
+  <!-- MODAL: DETALHAMENTO E EDIÇÃO DE SERVIÇO DE PINTURA -->
   <div id="service-modal" class="modal-overlay">
-    <div class="modal-card">
-      <header class="modal-header">
-        <h3 id="service-modal-title">Editar Serviço</h3>
+    <div class="modal-card service-detail-modal-card">
+      <header class="modal-header service-detail-modal-header">
+        <div>
+          <h3 id="service-modal-title">Detalhes do Serviço</h3>
+          <span id="service-modal-subtitle" class="sub-title">Visualização completa e materiais</span>
+        </div>
         <button id="service-modal-close-btn" class="icon-btn" aria-label="Fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
       </header>
       
-      <div class="modal-body">
-        <div class="form-group">
-          <label for="edit-srv-client">Qual Casa / Cliente?</label>
-          <input type="text" id="edit-srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
-        </div>
-
-        <div class="form-group">
-          <label for="edit-srv-address">Endereço / Local da obra (opcional)</label>
-          <input type="text" id="edit-srv-address" placeholder="Ex: Rua das Flores, 123 - Centro">
-        </div>
-
-        <div class="form-group">
-          <label for="edit-srv-contact">Contato do cliente (opcional)</label>
-          <input type="tel" id="edit-srv-contact" placeholder="Ex: (11) 99999-9999">
-        </div>
-
-        <div class="form-group">
-          <label for="edit-srv-description">Observações gerais (opcional)</label>
-          <textarea id="edit-srv-description" rows="3" placeholder="Ex: Combinado uso de tinta acrílica premium, portão fica para o final..."></textarea>
-        </div>
-
-        <div class="form-row">
+      <!-- Navegação Interna de Abas do Serviço -->
+      <nav class="service-modal-nav">
+        <button type="button" class="srv-nav-btn active" data-srv-tab="srv-tab-general">📋 Obra & Cliente</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-days">📅 Dias Trabalhados (<span id="srv-tab-days-count">0</span>)</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-materials">🎨 Materiais (<span id="srv-tab-mat-count">0</span>)</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-financial">💰 Balanço</button>
+      </nav>
+      
+      <div class="modal-body service-modal-body">
+        
+        <!-- ABA 1: GERAL & CLIENTE -->
+        <div id="srv-tab-general" class="srv-tab-pane active">
           <div class="form-group">
-            <label for="edit-srv-value">Valor do Serviço Completo (R$):</label>
-            <div class="input-prefix-wrapper">
-              <span class="input-prefix">R$</span>
-              <input type="number" id="edit-srv-value" placeholder="Ex: 3500" min="0" step="10">
+            <label for="edit-srv-client">Qual Casa / Cliente?</label>
+            <input type="text" id="edit-srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="edit-srv-address">Endereço / Local da obra</label>
+              <input type="text" id="edit-srv-address" placeholder="Ex: Rua das Flores, 123 - Centro">
+            </div>
+            <button type="button" id="open-map-btn" class="btn btn-secondary btn-icon-only" title="Ver no Mapa" style="margin-top: 1.6rem;">
+              📍 Mapa
+            </button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="edit-srv-contact">Contato do cliente</label>
+              <input type="tel" id="edit-srv-contact" placeholder="Ex: (11) 99999-9999">
+            </div>
+            <button type="button" id="open-whatsapp-btn" class="btn btn-secondary btn-icon-only" title="Abrir WhatsApp" style="margin-top: 1.6rem;">
+              💬 Whats
+            </button>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-srv-description">Observações / Detalhes da Obra</label>
+            <textarea id="edit-srv-description" rows="2" placeholder="Ex: Combinado uso de tinta acrílica premium, portão fica para o final..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-srv-value">Valor do Serviço (R$):</label>
+              <div class="input-prefix-wrapper">
+                <span class="input-prefix">R$</span>
+                <input type="number" id="edit-srv-value" placeholder="Ex: 3500" min="0" step="10">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="edit-srv-value-received">Valor já Recebido (R$):</label>
+              <div class="input-prefix-wrapper">
+                <span class="input-prefix">R$</span>
+                <input type="number" id="edit-srv-value-received" placeholder="Ex: 1000" min="0" step="10">
+              </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="edit-srv-value-received">Valor já recebido (R$):</label>
-            <div class="input-prefix-wrapper">
-              <span class="input-prefix">R$</span>
-              <input type="number" id="edit-srv-value-received" placeholder="Ex: 1000" min="0" step="10">
+            <label for="edit-srv-status">Status do Serviço:</label>
+            <div class="select-wrapper">
+              <select id="edit-srv-status">
+                <option value="pending">Pendente (Em andamento / Aberto)</option>
+                <option value="paid">Finalizado (Pago e Entregue)</option>
+              </select>
             </div>
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="edit-srv-status">Status do Serviço:</label>
-          <div class="select-wrapper">
-            <select id="edit-srv-status">
-              <option value="pending">Pendente (Aberto)</option>
-              <option value="paid">Finalizado (Pago e Entregue)</option>
-            </select>
+        <!-- ABA 2: DIAS TRABALHADOS -->
+        <div id="srv-tab-days" class="srv-tab-pane">
+          <div class="srv-pane-header">
+            <h4>Registro dos Dias Trabalhados</h4>
+            <small class="help-text">Histórico detalhado do que foi feito em cada dia nesta obra.</small>
+          </div>
+          
+          <div id="srv-days-list" class="srv-days-list">
+            <!-- Populado dinamicamente com lista de diárias -->
           </div>
         </div>
+
+        <!-- ABA 3: REGISTRO DE MATERIAIS -->
+        <div id="srv-tab-materials" class="srv-tab-pane">
+          <div class="srv-pane-header">
+            <h4>Materiais Usados / Comprados</h4>
+            <small class="help-text">Ideal para obras mais longas com compras de tintas, massas, lixas e agregados.</small>
+          </div>
+
+          <!-- Formulário para Inclusão de Material -->
+          <div class="add-material-card card">
+            <h5>+ Adicionar Material</h5>
+            <div class="form-group">
+              <label for="mat-name">Nome / Descrição do Material:</label>
+              <input type="text" id="mat-name" placeholder="Ex: Galão Tinta Suvinil Toque de Luz 18L">
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group" style="flex: 1;">
+                <label for="mat-qty">Quantidade:</label>
+                <input type="text" id="mat-qty" placeholder="Ex: 2 galões, 5un, 10m">
+              </div>
+              <div class="form-group" style="flex: 1;">
+                <label for="mat-price">Valor Total (R$):</label>
+                <div class="input-prefix-wrapper">
+                  <span class="input-prefix">R$</span>
+                  <input type="number" id="mat-price" placeholder="Ex: 450" min="0" step="5">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group" style="flex: 1.5;">
+                <label for="mat-store">Loja / Fornecedor (opcional):</label>
+                <input type="text" id="mat-store" placeholder="Ex: Depósito Casa das Tintas">
+              </div>
+              <div class="form-group" style="flex: 1; margin-top: 1.5rem;">
+                <button type="button" id="add-mat-btn" class="btn btn-primary btn-block">+ Incluir Item</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de Materiais Cadastrados -->
+          <div class="materials-list-wrapper">
+            <div class="materials-summary-bar">
+              <span>Total em Materiais:</span>
+              <strong id="mat-total-amount" class="text-accent">R$ 0,00</strong>
+            </div>
+            <div id="materials-items-list" class="materials-items-list">
+              <!-- Renderizado dinamicamente -->
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 4: BALANÇO FINANCEIRO DA OBRA -->
+        <div id="srv-tab-financial" class="srv-tab-pane">
+          <div class="srv-pane-header">
+            <h4>Balanço Financeiro da Obra</h4>
+            <small class="help-text">Resumo consolidado de ganhos, custos de materiais e ajudantes.</small>
+          </div>
+
+          <div class="financial-summary-cards">
+            <div class="fin-card">
+              <span class="fin-lbl">Valor Bruto do Serviço</span>
+              <span id="fin-srv-total" class="fin-val text-primary">R$ 0,00</span>
+            </div>
+            <div class="fin-card">
+              <span class="fin-lbl">Custo com Materiais</span>
+              <span id="fin-srv-materials" class="fin-val text-warning">R$ 0,00</span>
+            </div>
+            <div class="fin-card">
+              <span class="fin-lbl">Custo Ajudantes (Diárias)</span>
+              <span id="fin-srv-helpers" class="fin-val text-warning">R$ 0,00</span>
+            </div>
+            <div class="fin-card highlight">
+              <span class="fin-lbl">Lucro Líquido Estimado</span>
+              <span id="fin-srv-profit" class="fin-val text-success">R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="export-actions-card card" style="margin-top: 1.2rem;">
+            <h5>Compartilhar & Exportar Relatório</h5>
+            <p class="help-text" style="margin-bottom: 1rem;">Envie um resumo detalhado para o cliente via WhatsApp ou gere uma versão para print/PDF.</p>
+            <div class="action-buttons-grid">
+              <button type="button" id="export-whatsapp-btn" class="btn btn-secondary">
+                💬 Enviar no WhatsApp
+              </button>
+              <button type="button" id="export-print-btn" class="btn btn-secondary">
+                📄 Gerar Print / PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
       
       <footer class="modal-footer">
         <button id="service-modal-delete-btn" class="btn btn-text text-danger" style="display: none;">Excluir Serviço</button>
         <button id="service-modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
         <button id="service-modal-save-btn" class="btn btn-primary">Salvar Alterações</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- MODAL: PRÉVIA DE IMPRESSÃO / EXPORTAÇÃO PDF -->
+  <div id="export-modal" class="modal-overlay">
+    <div class="modal-card print-modal-card">
+      <header class="modal-header">
+        <h3>Relatório da Obra / Materiais</h3>
+        <button id="export-modal-close-btn" class="icon-btn" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </header>
+      
+      <div class="modal-body">
+        <div id="export-print-area" class="print-area">
+          <!-- Conteúdo gerado dinamicamente -->
+        </div>
+      </div>
+      
+      <footer class="modal-footer">
+        <button id="print-now-btn" class="btn btn-primary">🖨️ Imprimir / Salvar PDF</button>
+        <button id="copy-summary-btn" class="btn btn-secondary">📋 Copiar Texto</button>
       </footer>
     </div>
   </div>

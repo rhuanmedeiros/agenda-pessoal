@@ -164,6 +164,7 @@ function migrateOldState() {
     if (s.address === undefined) s.address = '';
     if (s.contact === undefined) s.contact = '';
     if (s.valueReceived === undefined) s.valueReceived = 0;
+    if (s.materials === undefined) s.materials = [];
     // `notes` reaproveita a antiga `description`; mantém os dois espelhados por compat de sync
     if (s.notes === undefined) s.notes = s.description || '';
     if (s.description === undefined) s.description = s.notes || '';
@@ -470,7 +471,7 @@ function renderServices() {
   // Filtrar serviços
   let filteredServices = servicesList.filter(srv => {
     const clientMatch = srv.client && srv.client.toLowerCase().includes(searchQuery);
-    const descMatch = srv.description && srv.description.toLowerCase().includes(searchQuery);
+    const descMatch = (srv.description || srv.notes || '').toLowerCase().includes(searchQuery);
     const matchesSearch = searchQuery === '' || clientMatch || descMatch;
     
     const matchesMonth = filterMonth === 'all' || srv.refDate.startsWith(filterMonth);
@@ -493,136 +494,78 @@ function renderServices() {
     return;
   }
   
-  // Renderizar os cards
+  // Renderizar os cards em estado FECHADO por padrão
   filteredServices.forEach(srv => {
     const card = document.createElement('div');
     card.classList.add('service-item-card');
     
     const valueBRL = formatCurrency(srv.value);
-    const statusText = srv.status === 'paid' ? 'Finalizado (Pago)' : 'Pendente (Aberto)';
+    const statusText = srv.status === 'paid' ? 'Finalizado' : 'Pendente';
     const statusClass = srv.status === 'paid' ? 'status-paid' : 'status-pending';
     
-    // Formatar dias de trabalho com detalhamento
-    let daysHTML = "";
-    if (srv.days.length > 0) {
-      const listItems = srv.days.map(d => {
-        const [year, month, day] = d.split('-');
-        const ev = appState.events[d];
-        const dayDesc = ev && ev.description ? ` - <span class="day-desc-text" style="color: var(--text-primary);">${ev.description}</span>` : ' (sem descrição do dia)';
-        return `<li class="day-bullet-item" data-date="${d}"><strong style="color: var(--color-brand-orange);">Dia ${day}/${month}</strong>${dayDesc}</li>`;
-      }).join('');
-      
-      daysHTML = `
-        <div class="service-days-worked" style="font-size: 0.8rem; margin: 0.6rem 0; color: var(--text-secondary);">
-          <div style="font-weight: 600; margin-bottom: 0.3rem;">📅 Dias trabalhados (${srv.days.length}) - clique no dia para editar:</div>
-          <ul style="margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 0.2rem;">
-            ${listItems}
-          </ul>
-        </div>
-      `;
-    } else {
-      daysHTML = `<div class="service-days-worked text-warning" style="font-size: 0.8rem; margin: 0.6rem 0;">⚠️ Nenhuma diária vinculada a este serviço ainda.</div>`;
-    }
+    const daysCount = srv.days.length;
+    const daysLabel = daysCount === 1 ? '1 dia trabalhado' : `${daysCount} dias trabalhados`;
     
-    // Linha de detalhes da obra (endereço / contato)
-    const srvNotes = srv.notes || srv.description || '';
+    const materialsCount = (srv.materials || []).length;
+    const materialsBadgeHTML = materialsCount > 0 
+      ? `<span class="srv-materials-badge">🎨 ${materialsCount} ${materialsCount === 1 ? 'material' : 'materiais'}</span>` 
+      : '';
+    
+    // Detalhes rápidos (Endereço/Contato)
     const metaParts = [];
     if (srv.address) metaParts.push(`📍 ${srv.address}`);
     if (srv.contact) metaParts.push(`📞 ${srv.contact}`);
-    const metaHTML = metaParts.length > 0
-      ? `<div class="service-meta" style="margin: 0.4rem 0 0 0; font-size: 0.78rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.15rem;">${metaParts.map(p => `<span>${p}</span>`).join('')}</div>`
+    const metaHTML = metaParts.length > 0 
+      ? `<div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.3rem;">${metaParts.join(' • ')}</div>` 
       : '';
-
-    // Rodapé de valores: mostra recebido/falta quando há adiantamento
+    
+    // Valores no rodapé do card fechado
     const received = Number(srv.valueReceived) || 0;
     const totalVal = Number(srv.value) || 0;
     let valueBlockHTML;
     if (received > 0) {
       const remaining = Math.max(totalVal - received, 0);
       valueBlockHTML = `
-        <div>
-          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Recebido ${formatCurrency(received)} de ${valueBRL}</span>
-          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: ${remaining > 0 ? 'var(--color-brand-orange)' : 'var(--color-brand-green)'};">${remaining > 0 ? 'Falta ' + formatCurrency(remaining) : 'Quitado ✅'}</span>
+        <div class="service-preview-left">
+          <span class="service-preview-days-lbl">Recebido ${formatCurrency(received)} de ${valueBRL}</span>
+          <span style="font-weight: 700; font-size: 1.05rem; color: ${remaining > 0 ? 'var(--color-brand-orange)' : 'var(--color-brand-green)'};">
+            ${remaining > 0 ? 'Falta ' + formatCurrency(remaining) : 'Quitado ✅'}
+          </span>
         </div>`;
     } else {
       valueBlockHTML = `
-        <div>
-          <span class="service-value-lbl" style="font-size: 0.72rem; color: var(--text-secondary); display: block;">Valor do Serviço:</span>
-          <span class="service-value" style="font-size: 1.15rem; font-weight: 700; color: var(--color-brand-green);">${valueBRL}</span>
+        <div class="service-preview-left">
+          <span class="service-preview-days-lbl">Valor do Serviço:</span>
+          <span style="font-weight: 700; font-size: 1.05rem; color: var(--color-brand-green);">${valueBRL}</span>
         </div>`;
     }
-
+    
     card.innerHTML = `
       <div class="service-item-header">
         <div class="service-title-container">
-          <h4 class="service-client" style="margin: 0; font-size: 1.05rem;">${srv.client || 'Sem nome do cliente'}</h4>
-          <span class="service-status-sub" style="font-size: 0.72rem; color: var(--text-secondary);">${statusText}</span>
+          <div class="service-title-row">
+            <h4 class="service-client-name">${srv.client || 'Sem nome do cliente'}</h4>
+            <span class="srv-days-badge">📅 ${daysLabel}</span>
+            ${materialsBadgeHTML}
+          </div>
+          ${metaHTML}
         </div>
-        <span class="status-badge ${statusClass}">${srv.status === 'paid' ? 'Pago' : 'Pendente'}</span>
+        <span class="status-badge ${statusClass}">${statusText}</span>
       </div>
-      ${metaHTML}
-      ${srvNotes ? `<p class="service-desc" style="margin: 0.5rem 0 0 0; font-size: 0.84rem; line-height: 1.4; color: var(--text-secondary);">${srvNotes}</p>` : ''}
-      ${daysHTML}
-      <div class="service-footer" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border-card); padding-top: 0.8rem;">
+
+      <div class="service-card-preview-info">
         ${valueBlockHTML}
-        <div class="service-actions" style="display: flex; gap: 0.4rem;">
-          <button class="btn btn-secondary btn-xs edit-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-card); color: var(--text-primary);">
-            ✏️ Editar
-          </button>
-          ${srv.status === 'pending' ? `
-            <button class="btn btn-secondary btn-xs finish-srv-btn" data-id="${srv.id}" style="padding: 0.4rem 0.8rem; font-size: 0.75rem; border-radius: 6px; background: rgba(0, 168, 107, 0.1); border: 1px solid var(--color-brand-green); color: var(--color-brand-green);">
-              ✅ Finalizar
-            </button>
-          ` : `
-            <button class="btn btn-text text-warning btn-xs reopen-srv-btn" data-id="${srv.id}" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--color-brand-orange); background: rgba(245, 158, 11, 0.1); color: var(--color-brand-orange);">
-              Reabrir
-            </button>
-          `}
+        <div class="service-preview-right">
+          <span class="srv-expand-hint">
+            👁️ Ver detalhes / materiais &rarr;
+          </span>
         </div>
       </div>
     `;
     
-    // Event handlers para botões
-    const editBtn = card.querySelector('.edit-srv-btn');
-    if (editBtn) {
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openServiceModal(srv.id);
-      });
-    }
-
-    const finishBtn = card.querySelector('.finish-srv-btn');
-    if (finishBtn) {
-      finishBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        changeServiceStatus(srv.id, 'paid');
-      });
-    }
-    
-    const reopenBtn = card.querySelector('.reopen-srv-btn');
-    if (reopenBtn) {
-      reopenBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        changeServiceStatus(srv.id, 'pending');
-      });
-    }
-    
-    // Configurar cliques nos dias individuais
-    const dayItems = card.querySelectorAll('.day-bullet-item');
-    dayItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openDayModal(item.dataset.date);
-      });
-    });
-    
-    // Clicar no card abre o dia trabalhado mais recente para edição rápida
+    // Clique no card abre o detalhamento completo do serviço
     card.addEventListener('click', () => {
-      if (srv.days.length > 0) {
-        openDayModal(srv.days[srv.days.length - 1]);
-      } else {
-        openServiceModal(srv.id);
-      }
+      openServiceModal(srv.id);
     });
 
     container.appendChild(card);
@@ -641,12 +584,25 @@ function changeServiceStatus(serviceId, newStatus) {
 
 let selectedServiceId = '';
 
+function switchServiceModalTab(tabId) {
+  const modal = document.getElementById('service-modal');
+  modal.querySelectorAll('.srv-nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.srvTab === tabId);
+  });
+  modal.querySelectorAll('.srv-tab-pane').forEach(pane => {
+    pane.classList.toggle('active', pane.id === tabId);
+  });
+}
+
 function openServiceModal(serviceId) {
   selectedServiceId = serviceId;
   const srv = appState.services[serviceId];
   if (!srv) return;
   
-  document.getElementById('service-modal-title').textContent = "Editar Serviço";
+  // Reset tab active
+  switchServiceModalTab('srv-tab-general');
+
+  document.getElementById('service-modal-title').textContent = srv.client || "Detalhes do Serviço";
   document.getElementById('edit-srv-client').value = srv.client || '';
   document.getElementById('edit-srv-address').value = srv.address || '';
   document.getElementById('edit-srv-contact').value = srv.contact || '';
@@ -654,6 +610,11 @@ function openServiceModal(serviceId) {
   document.getElementById('edit-srv-value').value = srv.value || '';
   document.getElementById('edit-srv-value-received').value = srv.valueReceived || '';
   document.getElementById('edit-srv-status').value = srv.status || 'pending';
+
+  // Carregar lista de dias e materiais para a modal
+  renderServiceModalDaysTab(serviceId);
+  renderServiceModalMaterialsTab(serviceId);
+  updateServiceFinancialTab(serviceId);
 
   // Show delete button
   document.getElementById('service-modal-delete-btn').style.display = 'block';
@@ -665,6 +626,8 @@ function openServiceModal(serviceId) {
 function openNewServiceModal() {
   selectedServiceId = 'new';
   
+  switchServiceModalTab('srv-tab-general');
+  
   document.getElementById('service-modal-title').textContent = "Novo Serviço";
   document.getElementById('edit-srv-client').value = '';
   document.getElementById('edit-srv-address').value = '';
@@ -673,6 +636,12 @@ function openNewServiceModal() {
   document.getElementById('edit-srv-value').value = '';
   document.getElementById('edit-srv-value-received').value = '';
   document.getElementById('edit-srv-status').value = 'pending';
+
+  document.getElementById('srv-tab-days-count').textContent = '0';
+  document.getElementById('srv-tab-mat-count').textContent = '0';
+  document.getElementById('srv-days-list').innerHTML = '<p class="help-text">Salve o serviço primeiro para vincular dias de trabalho.</p>';
+  document.getElementById('materials-items-list').innerHTML = '<p class="help-text">Salve o serviço primeiro para adicionar materiais.</p>';
+  document.getElementById('mat-total-amount').textContent = 'R$ 0,00';
 
   // Hide delete button for new service
   document.getElementById('service-modal-delete-btn').style.display = 'none';
@@ -683,6 +652,195 @@ function openNewServiceModal() {
 
 function closeServiceModal() {
   document.getElementById('service-modal').classList.remove('active');
+}
+
+// Renderiza a lista de dias trabalhados dentro do modal do serviço
+function renderServiceModalDaysTab(serviceId) {
+  const container = document.getElementById('srv-days-list');
+  const countEl = document.getElementById('srv-tab-days-count');
+  container.innerHTML = '';
+
+  const days = [];
+  Object.keys(appState.events).forEach(dateStr => {
+    const ev = appState.events[dateStr];
+    if (ev && ev.type !== 'deleted' && ev.serviceId === serviceId) {
+      days.push({ date: dateStr, ...ev });
+    }
+  });
+
+  days.sort((a, b) => b.date.localeCompare(a.date));
+  countEl.textContent = days.length;
+
+  if (days.length === 0) {
+    container.innerHTML = `<p class="help-text">Nenhuma diária cadastrada para este serviço no calendário ainda.</p>`;
+    return;
+  }
+
+  days.forEach(item => {
+    const el = document.createElement('div');
+    el.classList.add('srv-day-card-item');
+
+    const [y, m, d] = item.date.split('-');
+    const formattedDate = `${d}/${m}/${y}`;
+    const descText = item.description || 'Sem descrição cadastrada';
+    const helperText = item.helper ? ` (Ajudante: ${item.helper.name === 'father' ? 'Pai' : 'Outro'} - R$ ${item.helper.rate})` : '';
+
+    el.innerHTML = `
+      <div>
+        <div class="day-date-tag">📅 Dia ${formattedDate}</div>
+        <div class="day-desc">${descText}</div>
+        ${helperText ? `<div class="day-helper-tag">${helperText}</div>` : ''}
+      </div>
+      <button type="button" class="btn btn-secondary btn-xs edit-day-direct-btn" data-date="${item.date}">
+        ✏️ Editar Dia
+      </button>
+    `;
+
+    el.querySelector('.edit-day-direct-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeServiceModal();
+      openDayModal(item.date);
+    });
+
+    container.appendChild(el);
+  });
+}
+
+// Renderiza a lista de materiais dentro do modal do serviço
+function renderServiceModalMaterialsTab(serviceId) {
+  const container = document.getElementById('materials-items-list');
+  const countEl = document.getElementById('srv-tab-mat-count');
+  const totalEl = document.getElementById('mat-total-amount');
+
+  container.innerHTML = '';
+
+  const srv = appState.services[serviceId];
+  if (!srv) return;
+
+  const materials = srv.materials || [];
+  countEl.textContent = materials.length;
+
+  let totalCost = 0;
+
+  if (materials.length === 0) {
+    container.innerHTML = `<p class="help-text" style="text-align: center; padding: 1rem 0;">Nenhum material registrado ainda nesta obra.</p>`;
+    totalEl.textContent = 'R$ 0,00';
+    return;
+  }
+
+  materials.forEach((mat, index) => {
+    totalCost += Number(mat.price) || 0;
+
+    const matEl = document.createElement('div');
+    matEl.classList.add('material-item');
+
+    const subInfo = [mat.qty ? `Qtd: ${mat.qty}` : '', mat.store ? `Loja: ${mat.store}` : ''].filter(Boolean).join(' • ');
+
+    matEl.innerHTML = `
+      <div class="mat-item-info">
+        <span class="mat-item-name">${mat.name || 'Item sem nome'}</span>
+        ${subInfo ? `<span class="mat-item-sub">${subInfo}</span>` : ''}
+      </div>
+      <div class="mat-item-price-col">
+        <span class="mat-item-price">${formatCurrency(mat.price)}</span>
+        <button type="button" class="mat-del-btn" data-index="${index}" title="Excluir Material">🗑️</button>
+      </div>
+    `;
+
+    matEl.querySelector('.mat-del-btn').addEventListener('click', () => {
+      deleteMaterialFromService(serviceId, index);
+    });
+
+    container.appendChild(matEl);
+  });
+
+  totalEl.textContent = formatCurrency(totalCost);
+}
+
+function addMaterialToService() {
+  if (!selectedServiceId || selectedServiceId === 'new') {
+    showToast("⚠️ Por favor, salve o serviço primeiro antes de adicionar materiais!");
+    return;
+  }
+
+  const name = document.getElementById('mat-name').value.trim();
+  const qty = document.getElementById('mat-qty').value.trim();
+  const price = Number(document.getElementById('mat-price').value);
+  const store = document.getElementById('mat-store').value.trim();
+
+  if (!name) {
+    showToast("⚠️ Informe o nome ou descrição do material!");
+    return;
+  }
+
+  const srv = appState.services[selectedServiceId];
+  if (!srv) return;
+
+  if (!srv.materials) srv.materials = [];
+  srv.materials.push({
+    id: `mat_${Date.now()}`,
+    name: name,
+    qty: qty,
+    price: isNaN(price) ? 0 : price,
+    store: store,
+    date: getLocalDateString(new Date())
+  });
+
+  srv.updatedAt = Date.now();
+  saveState();
+
+  // Reset inputs
+  document.getElementById('mat-name').value = '';
+  document.getElementById('mat-qty').value = '';
+  document.getElementById('mat-price').value = '';
+  document.getElementById('mat-store').value = '';
+
+  showToast("✅ Material adicionado com sucesso!");
+  renderServiceModalMaterialsTab(selectedServiceId);
+  updateServiceFinancialTab(selectedServiceId);
+  renderServices();
+}
+
+function deleteMaterialFromService(serviceId, index) {
+  const srv = appState.services[serviceId];
+  if (srv && srv.materials && srv.materials[index]) {
+    srv.materials.splice(index, 1);
+    srv.updatedAt = Date.now();
+    saveState();
+    showToast("🗑️ Material removido.");
+    renderServiceModalMaterialsTab(serviceId);
+    updateServiceFinancialTab(serviceId);
+    renderServices();
+  }
+}
+
+function updateServiceFinancialTab(serviceId) {
+  const srv = appState.services[serviceId];
+  if (!srv) return;
+
+  const grossValue = Number(srv.value) || 0;
+
+  // Sum materials
+  let materialsCost = 0;
+  (srv.materials || []).forEach(m => {
+    materialsCost += Number(m.price) || 0;
+  });
+
+  // Sum helpers for this service
+  let helpersCost = 0;
+  Object.keys(appState.events).forEach(dateStr => {
+    const ev = appState.events[dateStr];
+    if (ev && ev.type !== 'deleted' && ev.serviceId === serviceId && ev.helper) {
+      helpersCost += Number(ev.helper.rate) || 0;
+    }
+  });
+
+  const profit = grossValue - materialsCost - helpersCost;
+
+  document.getElementById('fin-srv-total').textContent = formatCurrency(grossValue);
+  document.getElementById('fin-srv-materials').textContent = formatCurrency(materialsCost);
+  document.getElementById('fin-srv-helpers').textContent = formatCurrency(helpersCost);
+  document.getElementById('fin-srv-profit').textContent = formatCurrency(profit);
 }
 
 // Populate service filter dropdowns dynamically based on recorded dates
@@ -1122,6 +1280,201 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.id === 'day-modal') closeDayModal();
   });
 
+// --- MAP, WHATSAPP & EXPORT HELPERS ---
+function openMapForAddress() {
+  const address = document.getElementById('edit-srv-address').value.trim();
+  if (!address) {
+    showToast("⚠️ Informe um endereço para visualizar no mapa!");
+    return;
+  }
+  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  window.open(url, '_blank');
+}
+
+function openWhatsAppForContact() {
+  let phone = document.getElementById('edit-srv-contact').value.replace(/\D/g, '');
+  if (!phone) {
+    showToast("⚠️ Informe um número de telefone para abrir o WhatsApp!");
+    return;
+  }
+  if (!phone.startsWith('55') && phone.length <= 11) {
+    phone = '55' + phone;
+  }
+  window.open(`https://api.whatsapp.com/send?phone=${phone}`, '_blank');
+}
+
+function generateServiceTextSummary(serviceId) {
+  const srv = appState.services[serviceId];
+  if (!srv) return "";
+
+  const grossValue = Number(srv.value) || 0;
+  const receivedValue = Number(srv.valueReceived) || 0;
+  const materials = srv.materials || [];
+
+  let totalMaterials = 0;
+  materials.forEach(m => totalMaterials += Number(m.price) || 0);
+
+  // Collect days
+  const days = [];
+  Object.keys(appState.events).forEach(d => {
+    const ev = appState.events[d];
+    if (ev && ev.type !== 'deleted' && ev.serviceId === serviceId) {
+      days.push({ date: d, desc: ev.description || 'Diária realizada' });
+    }
+  });
+  days.sort((a, b) => a.date.localeCompare(b.date));
+
+  let text = `📋 *RESUMO DA OBRA / SERVIÇO*\n`;
+  text += `👤 *Cliente/Obra:* ${srv.client || 'N/A'}\n`;
+  if (srv.address) text += `📍 *Local:* ${srv.address}\n`;
+  text += `-----------------------------------\n`;
+  text += `💰 *Valor do Serviço:* ${formatCurrency(grossValue)}\n`;
+  if (receivedValue > 0) text += `💵 *Valor Recebido:* ${formatCurrency(receivedValue)}\n`;
+  text += `📅 *Dias Trabalhados:* ${days.length} dias\n`;
+
+  if (materials.length > 0) {
+    text += `\n🎨 *MATERIAIS USADOS / COMPRADOS (${materials.length} itens):*\n`;
+    materials.forEach(m => {
+      const qtyStr = m.qty ? ` (${m.qty})` : '';
+      text += `- ${m.name}${qtyStr}: ${formatCurrency(m.price)}\n`;
+    });
+    text += `👉 *Total em Materiais:* ${formatCurrency(totalMaterials)}\n`;
+  }
+
+  if (days.length > 0) {
+    text += `\n📅 *HISTÓRICO DE DIAS:* \n`;
+    days.forEach(d => {
+      const [y, m, day] = d.date.split('-');
+      text += `• ${day}/${m}/${y}: ${d.desc}\n`;
+    });
+  }
+
+  return text;
+}
+
+function exportWhatsAppSummary() {
+  if (!selectedServiceId || selectedServiceId === 'new') return;
+  const text = generateServiceTextSummary(selectedServiceId);
+  const phone = document.getElementById('edit-srv-contact').value.replace(/\D/g, '');
+  let phoneQuery = phone ? `phone=${phone.startsWith('55') ? phone : '55' + phone}&` : '';
+  const url = `https://api.whatsapp.com/send?${phoneQuery}text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
+function openExportPrintModal() {
+  if (!selectedServiceId || selectedServiceId === 'new') return;
+  const srv = appState.services[selectedServiceId];
+  if (!srv) return;
+
+  const area = document.getElementById('export-print-area');
+  const grossValue = Number(srv.value) || 0;
+  const receivedValue = Number(srv.valueReceived) || 0;
+  const materials = srv.materials || [];
+
+  let totalMaterials = 0;
+  materials.forEach(m => totalMaterials += Number(m.price) || 0);
+
+  // Collect days
+  const days = [];
+  Object.keys(appState.events).forEach(d => {
+    const ev = appState.events[d];
+    if (ev && ev.type !== 'deleted' && ev.serviceId === selectedServiceId) {
+      days.push({ date: d, desc: ev.description || 'Diária realizada' });
+    }
+  });
+  days.sort((a, b) => a.date.localeCompare(b.date));
+
+  let materialsRowsHTML = '';
+  if (materials.length > 0) {
+    materialsRowsHTML = materials.map(m => `
+      <tr>
+        <td>${m.name || ''}</td>
+        <td>${m.qty || '-'}</td>
+        <td>${m.store || '-'}</td>
+        <td style="text-align: right; font-weight: bold;">${formatCurrency(m.price)}</td>
+      </tr>
+    `).join('');
+  } else {
+    materialsRowsHTML = `<tr><td colspan="4" style="text-align: center; color: #64748b;">Nenhum material cadastrado.</td></tr>`;
+  }
+
+  let daysRowsHTML = '';
+  if (days.length > 0) {
+    daysRowsHTML = days.map(d => {
+      const [y, m, day] = d.date.split('-');
+      return `
+        <tr>
+          <td style="width: 110px; font-weight: bold;">${day}/${m}/${y}</td>
+          <td>${d.desc}</td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    daysRowsHTML = `<tr><td colspan="2" style="text-align: center; color: #64748b;">Nenhum dia registrado.</td></tr>`;
+  }
+
+  area.innerHTML = `
+    <h2>Relatório de Obra: ${srv.client || 'Sem nome'}</h2>
+    <p><strong>Local:</strong> ${srv.address || 'Não informado'} | <strong>Contato:</strong> ${srv.contact || 'Não informado'}</p>
+    
+    <div style="display: flex; gap: 1.5rem; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 6px; margin: 1rem 0;">
+      <div><strong>Valor do Serviço:</strong> ${formatCurrency(grossValue)}</div>
+      <div><strong>Já Recebido:</strong> ${formatCurrency(receivedValue)}</div>
+      <div><strong>Dias Trabalhados:</strong> ${days.length}</div>
+    </div>
+
+    <h3>1. Materiais Usados / Comprados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Item / Descrição</th>
+          <th>Qtd</th>
+          <th>Loja / Fornecedor</th>
+          <th style="text-align: right;">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${materialsRowsHTML}
+      </tbody>
+      <tfoot>
+        <tr style="background: #f1f5f9;">
+          <td colspan="3" style="font-weight: bold; text-align: right;">Total de Materiais:</td>
+          <td style="text-align: right; font-weight: bold; color: #00a86b;">${formatCurrency(totalMaterials)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <h3>2. Histórico de Dias Trabalhados</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Trabalho Realizado no Dia</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${daysRowsHTML}
+      </tbody>
+    </table>
+  `;
+
+  document.getElementById('export-modal').classList.add('active');
+}
+
+function closeExportPrintModal() {
+  document.getElementById('export-modal').classList.remove('active');
+}
+
+function copySummaryToClipboard() {
+  if (!selectedServiceId || selectedServiceId === 'new') return;
+  const text = generateServiceTextSummary(selectedServiceId);
+  navigator.clipboard.writeText(text).then(() => {
+    showToast("📋 Resumo copiado para a área de transferência!");
+  }).catch(() => {
+    showToast("⚠️ Erro ao copiar texto.");
+  });
+}
+
   // Service Modal Interactions
   document.getElementById('service-modal-close-btn').addEventListener('click', closeServiceModal);
   document.getElementById('service-modal-cancel-btn').addEventListener('click', closeServiceModal);
@@ -1129,6 +1482,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('service-modal').addEventListener('click', (e) => {
     if (e.target.id === 'service-modal') closeServiceModal();
   });
+
+  // Sub-abas do Modal de Serviço
+  const srvNavBtns = document.querySelectorAll('.srv-nav-btn');
+  srvNavBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      switchServiceModalTab(btn.dataset.srvTab);
+    });
+  });
+
+  // Botões de Ação na Modal de Serviço (Mapa, WhatsApp, Materiais, Exportação)
+  document.getElementById('open-map-btn').addEventListener('click', openMapForAddress);
+  document.getElementById('open-whatsapp-btn').addEventListener('click', openWhatsAppForContact);
+  document.getElementById('add-mat-btn').addEventListener('click', addMaterialToService);
+  document.getElementById('export-whatsapp-btn').addEventListener('click', exportWhatsAppSummary);
+  document.getElementById('export-print-btn').addEventListener('click', openExportPrintModal);
+
+  // Modal de Exportação / Impressão
+  document.getElementById('export-modal-close-btn').addEventListener('click', closeExportPrintModal);
+  document.getElementById('export-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'export-modal') closeExportPrintModal();
+  });
+  document.getElementById('print-now-btn').addEventListener('click', () => {
+    window.print();
+  });
+  document.getElementById('copy-summary-btn').addEventListener('click', copySummaryToClipboard);
   
   // Service Modal Save Button Handler
   document.getElementById('service-modal-save-btn').addEventListener('click', () => {
@@ -1158,6 +1536,7 @@ document.addEventListener('DOMContentLoaded', () => {
         value: isNaN(val) ? 0 : val,
         valueReceived: isNaN(received) ? 0 : received,
         status: status,
+        materials: [],
         updatedAt: Date.now()
       };
       showToast("🎉 Serviço criado com sucesso!");
