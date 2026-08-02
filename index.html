@@ -119,27 +119,28 @@
 
       <!-- TAB 2: SERVIÇOS DE PINTURA -->
       <section id="tab-services" class="tab-content">
-        <div class="services-header-actions">
-          <h2>Serviços de Pintura</h2>
-          <button id="add-service-btn" class="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            Novo Serviço
-          </button>
-        </div>
-
-        <!-- Filter & Search Card -->
+        
+        <!-- Filter & Search Card com Título Unificado -->
         <div class="filter-card card">
+          <div class="services-header-actions" style="margin-bottom: 1rem;">
+            <h2>Serviços de Pintura</h2>
+            <button id="add-service-btn" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Novo Serviço
+            </button>
+          </div>
+
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
             <input type="text" id="service-search-input" placeholder="Pesquisar por casa, cliente ou descrição...">
           </div>
-          <div class="filter-row">
-            <div class="form-group select-wrapper">
+          <div class="filter-row" style="margin-top: 0.75rem;">
+            <div class="form-group select-wrapper" style="margin-bottom: 0;">
               <select id="service-filter-month">
                 <!-- Populated dynamically -->
               </select>
             </div>
-            <div class="form-group select-wrapper">
+            <div class="form-group select-wrapper" style="margin-bottom: 0;">
               <select id="service-filter-status">
                 <option value="all">Todos os Status</option>
                 <option value="pending">Pendentes</option>
@@ -157,12 +158,16 @@
 
       <!-- TAB 3: RELATÓRIOS -->
       <section id="tab-reports" class="tab-content">
-        <div class="report-header-row">
-          <h2>Fechamento do Mês</h2>
-          <div class="form-group select-wrapper compact">
-            <select id="report-month-select">
-              <!-- Populated dynamically -->
-            </select>
+        
+        <!-- Card do Cabeçalho de Relatórios -->
+        <div class="report-header-card card">
+          <div class="report-header-row" style="margin-bottom: 0;">
+            <h2 style="margin-bottom: 0;">Fechamento do Mês</h2>
+            <div class="form-group select-wrapper compact" style="margin-bottom: 0;">
+              <select id="report-month-select">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
           </div>
         </div>
 
@@ -573,10 +578,10 @@
         </button>
       </header>
       
-      <!-- Navegação Interna de Abas do Serviço -->
+      <!-- Navegação em Pílulas Compactas (Segmented Control) -->
       <nav class="service-modal-nav">
-        <button type="button" class="srv-nav-btn active" data-srv-tab="srv-tab-general">📋 Obra & Cliente</button>
-        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-days">📅 Dias Trabalhados (<span id="srv-tab-days-count">0</span>)</button>
+        <button type="button" class="srv-nav-btn active" data-srv-tab="srv-tab-general">📋 Dados</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-days">📅 Dias (<span id="srv-tab-days-count">0</span>)</button>
         <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-materials">🎨 Materiais (<span id="srv-tab-mat-count">0</span>)</button>
         <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-financial">💰 Balanço</button>
       </nav>
@@ -585,63 +590,75 @@
         
         <!-- ABA 1: GERAL & CLIENTE -->
         <div id="srv-tab-general" class="srv-tab-pane active">
-          <div class="form-group">
-            <label for="edit-srv-client">Qual Casa / Cliente?</label>
-            <input type="text" id="edit-srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
-          </div>
+          
+          <!-- Card de Informações da Obra -->
+          <div class="form-section-card">
+            <h5 class="form-section-title">👤 Cliente & Local</h5>
+            
+            <div class="form-group">
+              <label for="edit-srv-client">Qual Casa / Cliente?</label>
+              <input type="text" id="edit-srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
+            </div>
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
               <label for="edit-srv-address">Endereço / Local da obra</label>
-              <input type="text" id="edit-srv-address" placeholder="Ex: Rua das Flores, 123 - Centro">
+              <div class="input-inline-action-wrapper">
+                <input type="text" id="edit-srv-address" placeholder="Ex: Rua das Flores, 123 - Centro">
+                <button type="button" id="open-map-btn" class="input-inline-btn" title="Ver no Mapa">📍 Mapa</button>
+              </div>
             </div>
-            <button type="button" id="open-map-btn" class="btn btn-secondary btn-icon-only" title="Ver no Mapa" style="margin-top: 1.6rem;">
-              📍 Mapa
-            </button>
-          </div>
 
-          <div class="form-row">
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group">
               <label for="edit-srv-contact">Contato do cliente</label>
-              <input type="tel" id="edit-srv-contact" placeholder="Ex: (11) 99999-9999">
-            </div>
-            <button type="button" id="open-whatsapp-btn" class="btn btn-secondary btn-icon-only" title="Abrir WhatsApp" style="margin-top: 1.6rem;">
-              💬 Whats
-            </button>
-          </div>
-
-          <div class="form-group">
-            <label for="edit-srv-description">Observações / Detalhes da Obra</label>
-            <textarea id="edit-srv-description" rows="2" placeholder="Ex: Combinado uso de tinta acrílica premium, portão fica para o final..."></textarea>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="edit-srv-value">Valor do Serviço (R$):</label>
-              <div class="input-prefix-wrapper">
-                <span class="input-prefix">R$</span>
-                <input type="number" id="edit-srv-value" placeholder="Ex: 3500" min="0" step="10">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label for="edit-srv-value-received">Valor já Recebido (R$):</label>
-              <div class="input-prefix-wrapper">
-                <span class="input-prefix">R$</span>
-                <input type="number" id="edit-srv-value-received" placeholder="Ex: 1000" min="0" step="10">
+              <div class="input-inline-action-wrapper">
+                <input type="tel" id="edit-srv-contact" placeholder="Ex: (11) 99999-9999">
+                <button type="button" id="open-whatsapp-btn" class="input-inline-btn" title="Abrir WhatsApp">💬 Whats</button>
               </div>
             </div>
           </div>
 
-          <div class="form-group">
-            <label for="edit-srv-status">Status do Serviço:</label>
-            <div class="select-wrapper">
-              <select id="edit-srv-status">
-                <option value="pending">Pendente (Em andamento / Aberto)</option>
-                <option value="paid">Finalizado (Pago e Entregue)</option>
-              </select>
+          <!-- Card de Observações -->
+          <div class="form-section-card">
+            <h5 class="form-section-title">📝 Detalhes & Combinados</h5>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="edit-srv-description">Observações da Obra</label>
+              <textarea id="edit-srv-description" rows="2" placeholder="Ex: Tinta acrílica premium, portão fica para o final..."></textarea>
             </div>
           </div>
+
+          <!-- Card de Valores -->
+          <div class="form-section-card">
+            <h5 class="form-section-title">💵 Valores & Status</h5>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="edit-srv-value">Valor do Serviço (R$):</label>
+                <div class="input-prefix-wrapper">
+                  <span class="input-prefix">R$</span>
+                  <input type="number" id="edit-srv-value" placeholder="Ex: 3500" min="0" step="10">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-srv-value-received">Valor já Recebido (R$):</label>
+                <div class="input-prefix-wrapper">
+                  <span class="input-prefix">R$</span>
+                  <input type="number" id="edit-srv-value-received" placeholder="Ex: 1000" min="0" step="10">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="edit-srv-status">Status do Serviço:</label>
+              <div class="select-wrapper">
+                <select id="edit-srv-status">
+                  <option value="pending">Pendente (Em andamento / Aberto)</option>
+                  <option value="paid">Finalizado (Pago e Entregue)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- ABA 2: DIAS TRABALHADOS -->

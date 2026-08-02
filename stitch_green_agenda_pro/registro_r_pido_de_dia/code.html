@@ -1,0 +1,295 @@
+<!DOCTYPE html><html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Registro Rápido</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#690005",
+                      "surface-variant": "#333534",
+                      "secondary-fixed": "#dce5de",
+                      "surface-elevated": "#1A241F",
+                      "background": "#121413",
+                      "primary-fixed-dim": "#4edea3",
+                      "inverse-surface": "#e2e3e0",
+                      "text-muted": "#94A3B8",
+                      "surface-container-lowest": "#0d0f0e",
+                      "inverse-on-surface": "#2f312f",
+                      "surface-container-low": "#1a1c1b",
+                      "error-container": "#93000a",
+                      "on-surface": "#e2e3e0",
+                      "on-background": "#e2e3e0",
+                      "surface-dim": "#121413",
+                      "tertiary": "#68dba9",
+                      "on-primary-container": "#00422b",
+                      "surface": "#121413",
+                      "primary-fixed": "#6ffbbe",
+                      "on-secondary": "#2a322e",
+                      "on-surface-variant": "#bbcabf",
+                      "secondary-fixed-dim": "#c0c9c2",
+                      "on-primary": "#003824",
+                      "on-tertiary": "#003825",
+                      "on-secondary-fixed-variant": "#404944",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed-dim": "#68dba9",
+                      "inverse-primary": "#006c49",
+                      "on-primary-fixed-variant": "#005236",
+                      "on-tertiary-fixed-variant": "#005137",
+                      "status-pending": "#F59E0B",
+                      "surface-container-highest": "#333534",
+                      "on-tertiary-container": "#00422c",
+                      "outline-variant": "#3c4a42",
+                      "on-secondary-fixed": "#151d19",
+                      "surface-tint": "#4edea3",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#3eb686",
+                      "on-primary-fixed": "#002113",
+                      "primary-container": "#10b981",
+                      "on-tertiary-fixed": "#002114",
+                      "secondary-container": "#404944",
+                      "tertiary-fixed": "#85f8c4",
+                      "on-secondary-container": "#aeb7b1",
+                      "primary": "#4edea3",
+                      "surface-container": "#1e201f",
+                      "secondary": "#c0c9c2",
+                      "outline": "#86948a",
+                      "status-error": "#EF4444",
+                      "surface-container-high": "#282a29",
+                      "surface-bright": "#383a38"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "inner-padding": "1.25rem",
+                      "component-height-lg": "3.5rem",
+                      "stack-gap": "1.5rem",
+                      "container-padding": "1rem",
+                      "grid-gutter": "1rem"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "label-bold": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+          .glass-panel {
+              background: rgba(18, 26, 22, 0.7);
+              backdrop-filter: blur(12px);
+              -webkit-backdrop-filter: blur(12px);
+              border: 1px solid rgba(255, 255, 255, 0.05);
+          }
+          
+          /* Hide scrollbar for clean modal look if it overflows */
+          ::-webkit-scrollbar {
+              display: none;
+          }
+          * {
+              scrollbar-width: none;
+          }
+
+          .type-card input[type="radio"]:checked + div {
+              border-color: #10B981;
+              background-color: rgba(16, 185, 129, 0.1);
+              box-shadow: 0 0 15px rgba(16, 185, 129, 0.2);
+          }
+          
+          .type-card input[type="radio"]:checked + div .material-symbols-outlined {
+              color: #10B981;
+              font-variation-settings: 'FILL' 1;
+          }
+          
+          .custom-input:focus {
+              border-color: #10B981;
+              box-shadow: 0 1px 0 0 #10B981;
+          }
+      </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex items-center justify-center p-4 antialiased">
+<!-- Modal Container -->
+<main class="w-full max-w-md bg-surface-elevated rounded-xl shadow-2xl border border-white/10 overflow-hidden relative">
+<!-- Header -->
+<header class="flex justify-between items-center p-6 border-b border-white/5">
+<h1 class="font-headline-md text-headline-md text-on-surface">Registro Rápido</h1>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors p-2 -mr-2 rounded-full hover:bg-surface-variant/20">
+<span class="material-symbols-outlined">close</span>
+</button>
+</header>
+<!-- Form Content -->
+<form class="p-6 flex flex-col gap-stack-gap">
+<!-- Day Type Selection -->
+<section>
+<h2 class="font-label-bold text-label-bold text-on-surface-variant mb-3 uppercase tracking-wider">Tipo de Dia</h2>
+<div class="grid grid-cols-3 gap-3">
+<label class="type-card cursor-pointer relative">
+<input class="sr-only" name="day_type" type="radio" value="por_conta">
+<div class="flex flex-col items-center justify-center p-4 rounded-lg bg-surface-container border border-outline-variant/30 transition-all duration-200 h-28 hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-3xl mb-2 text-on-surface-variant transition-colors">work</span>
+<span class="font-body-md text-body-md text-center leading-tight">Por Conta</span>
+</div>
+</label><label class="type-card cursor-pointer relative">
+<input checked="" class="sr-only" name="day_type" type="radio" value="com_pai">
+<div class="flex flex-col items-center justify-center p-4 rounded-lg bg-surface-container border border-outline-variant/30 transition-all duration-200 h-28 hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-3xl mb-2 text-on-surface-variant transition-colors">groups</span>
+<span class="font-body-md text-body-md text-center leading-tight">Com o Pai</span>
+</div>
+</label>
+
+<label class="type-card cursor-pointer relative">
+<input class="sr-only" name="day_type" type="radio" value="folga">
+<div class="flex flex-col items-center justify-center p-4 rounded-lg bg-surface-container border border-outline-variant/30 transition-all duration-200 h-28 hover:bg-surface-container-high">
+<span class="material-symbols-outlined text-3xl mb-2 text-on-surface-variant transition-colors">beach_access</span>
+<span class="font-body-md text-body-md text-center leading-tight">Folga</span>
+</div>
+</label>
+</div>
+</section>
+<!-- Details Inputs -->
+<section class="flex flex-col gap-4">
+<div class="relative">
+<label class="sr-only" for="descricao">O que foi feito?</label>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant">edit</span>
+</div>
+<input class="custom-input block w-full pl-10 pr-3 py-3 bg-surface-container/50 border-0 border-b-2 border-outline-variant/50 text-on-surface font-body-lg text-body-lg focus:ring-0 focus:border-primary-container placeholder-text-muted transition-colors rounded-t-DEFAULT" id="descricao" name="descricao" placeholder="O que foi feito?" type="text">
+</div>
+<div class="relative">
+<label class="sr-only" for="valor">Valor estimado</label>
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-on-surface-variant">attach_money</span>
+</div>
+<input class="custom-input block w-full pl-10 pr-3 py-3 bg-surface-container/50 border-0 border-b-2 border-outline-variant/50 text-on-surface font-data-mono text-data-mono focus:ring-0 focus:border-primary-container placeholder-text-muted transition-colors rounded-t-DEFAULT" id="valor" name="valor" placeholder="Valor estimado (R$)" type="number">
+</div>
+</section>
+<!-- Checkbox -->
+<section class="flex items-center mt-2">
+<input class="w-5 h-5 bg-surface-container border-outline-variant rounded text-primary-container focus:ring-primary-container/50 focus:ring-offset-0 focus:ring-offset-background" id="add_details" type="checkbox">
+<label class="ml-3 font-body-md text-body-md text-on-surface-variant cursor-pointer select-none" for="add_details">
+                    Adicionar detalhes depois
+                </label>
+</section>
+<!-- Action Buttons -->
+<footer class="mt-4 pt-4 border-t border-white/5 flex gap-4">
+<button class="flex-1 py-4 px-6 rounded-lg font-headline-md text-headline-md text-on-surface-variant bg-transparent border border-outline-variant hover:bg-surface-variant/20 transition-colors" type="button">
+                    Cancelar
+                </button>
+<button class="flex-[2] py-4 px-6 rounded-lg font-headline-md text-headline-md text-background bg-primary-container hover:bg-primary-fixed transition-colors shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2" type="submit">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                    Salvar
+                </button>
+</footer>
+</form>
+</main>
+<script>
+        // Simple micro-interaction for form submission
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = this.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Salvando...';
+            btn.classList.add('opacity-80');
+            
+            setTimeout(() => {
+                btn.innerHTML = '<span class="material-symbols-outlined" style="font-variation-settings: \'FILL\' 1;">done_all</span> Salvo!';
+                btn.classList.remove('opacity-80');
+                btn.classList.replace('bg-primary-container', 'bg-tertiary-container');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.replace('bg-tertiary-container', 'bg-primary-container');
+                    this.reset();
+                }, 1500);
+            }, 800);
+        });
+    </script>
+
+
+</body></html>

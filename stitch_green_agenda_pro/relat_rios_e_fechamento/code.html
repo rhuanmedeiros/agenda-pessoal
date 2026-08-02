@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Relatórios Mensais</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error": "#690005",
+                      "surface-variant": "#333534",
+                      "secondary-fixed": "#dce5de",
+                      "surface-elevated": "#1A241F",
+                      "background": "#121413",
+                      "primary-fixed-dim": "#4edea3",
+                      "inverse-surface": "#e2e3e0",
+                      "text-muted": "#94A3B8",
+                      "surface-container-lowest": "#0d0f0e",
+                      "inverse-on-surface": "#2f312f",
+                      "surface-container-low": "#1a1c1b",
+                      "error-container": "#93000a",
+                      "on-surface": "#e2e3e0",
+                      "on-background": "#e2e3e0",
+                      "surface-dim": "#121413",
+                      "tertiary": "#68dba9",
+                      "on-primary-container": "#00422b",
+                      "surface": "#121413",
+                      "primary-fixed": "#6ffbbe",
+                      "on-secondary": "#2a322e",
+                      "on-surface-variant": "#bbcabf",
+                      "secondary-fixed-dim": "#c0c9c2",
+                      "on-primary": "#003824",
+                      "on-tertiary": "#003825",
+                      "on-secondary-fixed-variant": "#404944",
+                      "error": "#ffb4ab",
+                      "tertiary-fixed-dim": "#68dba9",
+                      "inverse-primary": "#006c49",
+                      "on-primary-fixed-variant": "#005236",
+                      "on-tertiary-fixed-variant": "#005137",
+                      "status-pending": "#F59E0B",
+                      "surface-container-highest": "#333534",
+                      "on-tertiary-container": "#00422c",
+                      "outline-variant": "#3c4a42",
+                      "on-secondary-fixed": "#151d19",
+                      "surface-tint": "#4edea3",
+                      "on-error-container": "#ffdad6",
+                      "tertiary-container": "#3eb686",
+                      "on-primary-fixed": "#002113",
+                      "primary-container": "#10b981",
+                      "on-tertiary-fixed": "#002114",
+                      "secondary-container": "#404944",
+                      "tertiary-fixed": "#85f8c4",
+                      "on-secondary-container": "#aeb7b1",
+                      "primary": "#4edea3",
+                      "surface-container": "#1e201f",
+                      "secondary": "#c0c9c2",
+                      "outline": "#86948a",
+                      "status-error": "#EF4444",
+                      "surface-container-high": "#282a29",
+                      "surface-bright": "#383a38"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "inner-padding": "1.25rem",
+                      "component-height-lg": "3.5rem",
+                      "stack-gap": "1.5rem",
+                      "container-padding": "1rem",
+                      "grid-gutter": "1rem"
+              },
+              "fontFamily": {
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-lg-mobile": [
+                              "Inter"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ],
+                      "headline-lg": [
+                              "Inter"
+                      ],
+                      "label-bold": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "40px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "label-bold": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "data-mono": [
+                              "18px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "700"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-background dark:bg-background z-50">
+<div class="flex justify-between items-center w-full px-inner-padding h-component-height-lg bg-background dark:bg-background flat no shadows">
+<div class="flex items-center gap-3">
+<img class="w-10 h-10 rounded-full object-cover border border-outline-variant/20" data-alt="A rugged, highly detailed professional portrait of a tradesperson in working gear, shot with dramatic low-key studio lighting, emerald highlights reflecting off tools, Corporate Modern style, hyper-realistic, 8k resolution, evoking a sense of reliable craftsmanship." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAJXKVLQlgB2nahnKnf65VDifkel4ThXgRByUf5eI9Uj08te3jfxMZ6KKSvTKx6WWNnLfCzqlcIBpFgxy1s5W_-rmiE_yAqssJviGj-g1quFSsdS5PaTVyScBDakyWHw0a0oFcR_-K8Y2xUE4oA1vb6YDzonuaZyWqdcUU7wpCiGKBsWaVJblPuAzBVun69MEVyDxlz7PF0AXzVVXk_w2Y-EHi57Ys8w6vHdPh_VKz3QG9HypbGA9tP"/>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary">Olá, Pintor</h1>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-variant/10 dark:hover:bg-surface-variant/10 transition-colors duration-200 text-on-surface-variant dark:text-on-surface-variant">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-container-padding py-stack-gap md:py-8 space-y-stack-gap">
+<!-- Header -->
+<div class="flex justify-between items-end mb-6">
+<div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg mb-1">Novembro 2023</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Relatório de desempenho financeiro e serviços.</p>
+</div>
+<button class="bg-surface-elevated border border-outline-variant/20 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-surface-variant/10 transition-colors">
+<span class="material-symbols-outlined text-primary text-[20px]">download</span>
+<span class="font-label-bold text-label-bold text-on-surface">PDF</span>
+</button>
+</div>
+<!-- Bento Grid Financeiro -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-grid-gutter">
+<!-- Total Recebido -->
+<div class="bg-surface-elevated border-t border-primary/30 rounded-xl p-inner-padding shadow-[0px_4px_20px_rgba(0,0,0,0.3)]">
+<div class="flex items-center justify-between mb-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+</div>
+<span class="font-label-bold text-label-bold text-primary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +12%
+                    </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Total Recebido</p>
+<h3 class="font-data-mono text-data-mono text-2xl md:text-3xl text-on-surface">R$ 4.850,00</h3>
+</div>
+<!-- A Receber -->
+<div class="bg-surface-elevated border-t border-status-pending/30 rounded-xl p-inner-padding shadow-[0px_4px_20px_rgba(0,0,0,0.3)]">
+<div class="flex items-center justify-between mb-4">
+<div class="w-10 h-10 rounded-full bg-status-pending/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-status-pending">schedule</span>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">A Receber</p>
+<h3 class="font-data-mono text-data-mono text-2xl md:text-3xl text-on-surface">R$ 1.200,00</h3>
+</div>
+<!-- Ganhos Próprios -->
+<div class="bg-surface-elevated border-t border-tertiary/30 rounded-xl p-inner-padding shadow-[0px_4px_20px_rgba(0,0,0,0.3)]">
+<div class="flex items-center justify-between mb-4">
+<div class="w-10 h-10 rounded-full bg-tertiary/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary">diamond</span>
+</div>
+<span class="font-label-bold text-label-bold text-tertiary flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> +5%
+                    </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-1">Ganhos Próprios</p>
+<h3 class="font-data-mono text-data-mono text-2xl md:text-3xl text-on-surface">R$ 3.200,00</h3>
+</div>
+</div>
+<!-- Gráfico e Lista Bento -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-grid-gutter mt-stack-gap">
+<!-- Gráfico Comparativo -->
+<div class="lg:col-span-2 bg-surface-elevated rounded-xl p-inner-padding border border-outline-variant/10 shadow-[0px_4px_20px_rgba(0,0,0,0.3)]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md text-on-surface">Origem dos Serviços</h3>
+<div class="flex gap-4">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="font-label-bold text-label-bold text-on-surface-variant">Por conta</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-surface-variant"></div>
+<span class="font-label-bold text-label-bold text-on-surface-variant">Com o pai</span>
+</div>
+</div>
+</div>
+<!-- Mockup de Gráfico de Barras -->
+<div class="h-64 flex items-end justify-between gap-2 pt-4">
+<!-- Semanas -->
+<div class="w-full flex flex-col justify-end gap-1 h-[80%] relative group">
+<div class="bg-surface-variant rounded-t-sm w-full absolute bottom-0 h-full"></div>
+<div class="bg-primary rounded-t-sm w-full absolute bottom-0 h-[60%] opacity-90 group-hover:opacity-100 transition-opacity" style="box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-bold text-label-bold text-on-surface-variant">S1</span>
+</div>
+<div class="w-full flex flex-col justify-end gap-1 h-[90%] relative group">
+<div class="bg-surface-variant rounded-t-sm w-full absolute bottom-0 h-full"></div>
+<div class="bg-primary rounded-t-sm w-full absolute bottom-0 h-[75%] opacity-90 group-hover:opacity-100 transition-opacity" style="box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-bold text-label-bold text-on-surface-variant">S2</span>
+</div>
+<div class="w-full flex flex-col justify-end gap-1 h-[60%] relative group">
+<div class="bg-surface-variant rounded-t-sm w-full absolute bottom-0 h-[40%] z-0"></div>
+<div class="bg-primary rounded-t-sm w-full absolute bottom-0 h-full z-10 opacity-90 group-hover:opacity-100 transition-opacity" style="box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-bold text-label-bold text-on-surface-variant">S3</span>
+</div>
+<div class="w-full flex flex-col justify-end gap-1 h-[100%] relative group">
+<div class="bg-surface-variant rounded-t-sm w-full absolute bottom-0 h-full"></div>
+<div class="bg-primary rounded-t-sm w-full absolute bottom-0 h-[85%] opacity-90 group-hover:opacity-100 transition-opacity" style="box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);"></div>
+<span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-label-bold text-label-bold text-on-surface-variant">S4</span>
+</div>
+</div>
+</div>
+<!-- Serviços Mais Rentáveis -->
+<div class="bg-surface-elevated rounded-xl p-inner-padding border border-outline-variant/10 shadow-[0px_4px_20px_rgba(0,0,0,0.3)]">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6">Top Serviços</h3>
+<div class="space-y-4">
+<!-- Item 1 -->
+<div class="flex items-center gap-4 bg-background/50 p-3 rounded-lg border border-outline-variant/5">
+<div class="w-12 h-12 rounded-lg bg-surface-variant/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary">format_paint</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-md text-body-md text-on-surface truncate font-semibold">Pintura Externa Res.</h4>
+<p class="font-label-bold text-label-bold text-on-surface-variant mt-0.5">3 dias • Por conta</p>
+</div>
+<div class="text-right shrink-0">
+<span class="font-data-mono text-data-mono text-primary block text-[16px]">R$ 1.800</span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center gap-4 bg-background/50 p-3 rounded-lg border border-outline-variant/5">
+<div class="w-12 h-12 rounded-lg bg-surface-variant/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-tertiary">wallpaper</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-md text-body-md text-on-surface truncate font-semibold">Aplicação de Textura</h4>
+<p class="font-label-bold text-label-bold text-on-surface-variant mt-0.5">2 dias • Com o pai</p>
+</div>
+<div class="text-right shrink-0">
+<span class="font-data-mono text-data-mono text-primary block text-[16px]">R$ 1.200</span>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center gap-4 bg-background/50 p-3 rounded-lg border border-outline-variant/5">
+<div class="w-12 h-12 rounded-lg bg-surface-variant/30 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface-variant">mobile_ticket</span>
+</div>
+<div class="flex-1 min-w-0">
+<h4 class="font-body-md text-body-md text-on-surface truncate font-semibold">Reparos Internos</h4>
+<p class="font-label-bold text-label-bold text-on-surface-variant mt-0.5">1 dia • Por conta</p>
+</div>
+<div class="text-right shrink-0">
+<span class="font-data-mono text-data-mono text-primary block text-[16px]">R$ 800</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2 border border-primary text-primary rounded-lg font-label-bold text-label-bold hover:bg-primary/10 transition-colors">
+                    Ver todos
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden docked full-width bottom-0 rounded-t-xl bg-surface/80 dark:bg-surface/80 backdrop-blur-lg border-t border-outline-variant/20 shadow-lg fixed bottom-0 w-full z-50 flex justify-around items-center px-2 py-3">
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">calendar_month</span>
+<span class="font-label-bold text-label-bold">Calendário</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">format_paint</span>
+<span class="font-label-bold text-label-bold">Serviços</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-full px-4 py-1 hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-label-bold text-label-bold">Relatórios</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform duration-150">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-label-bold text-label-bold">Ajustes</span>
+</button>
+</nav>
+</body></html>
