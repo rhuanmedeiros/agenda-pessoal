@@ -19,7 +19,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body class="dark-theme">
   <!-- App Container -->
@@ -92,18 +92,18 @@
         <div class="legend-card card">
           <h3>Legenda e Resumo Rápido</h3>
           <div class="legend-items">
-            <div class="legend-item" data-type="father">
-              <span class="badge badge-father"></span>
-              <div class="legend-info">
-                <span class="legend-label">Com o Pai</span>
-                <span id="quick-count-father" class="legend-count">0 dias</span>
-              </div>
-            </div>
             <div class="legend-item" data-type="own">
               <span class="badge badge-own"></span>
               <div class="legend-info">
                 <span class="legend-label">Por Minha Conta</span>
                 <span id="quick-count-own" class="legend-count">0 dias</span>
+              </div>
+            </div>
+            <div class="legend-item" data-type="father">
+              <span class="badge badge-father"></span>
+              <div class="legend-info">
+                <span class="legend-label" id="legend-label-father">Com o Pai</span>
+                <span id="quick-count-father" class="legend-count">0 dias</span>
               </div>
             </div>
             <div class="legend-item" data-type="off">
@@ -180,41 +180,41 @@
             <div class="chart-container">
               <!-- Simple CSS-based Stacked Bar Chart -->
               <div class="progress-bar-stacked">
-                <div id="bar-father" class="bar-segment bar-father" style="width: 0%"></div>
                 <div id="bar-own" class="bar-segment bar-own" style="width: 0%"></div>
+                <div id="bar-father" class="bar-segment bar-father" style="width: 0%"></div>
                 <div id="bar-off" class="bar-segment bar-off" style="width: 0%"></div>
               </div>
               <div class="chart-labels">
-                <div><span class="dot dot-father"></span> Pai: <strong id="chart-lbl-father">0</strong> dias</div>
                 <div><span class="dot dot-own"></span> Conta: <strong id="chart-lbl-own">0</strong> dias</div>
+                <div><span class="dot dot-father"></span> <span id="chart-lbl-father-name">Pai</span>: <strong id="chart-lbl-father">0</strong> dias</div>
                 <div><span class="dot dot-off"></span> Folga: <strong id="chart-lbl-off">0</strong> dias</div>
               </div>
             </div>
           </div>
 
-          <!-- Father Salary Report -->
+          <!-- Boss / Father Day Rate Report -->
           <div class="salary-card card">
-            <div class="card-badge">Com o Pai</div>
-            <h3>Cálculo de Diárias</h3>
+            <div class="card-badge" id="rep-card-father-badge">Com o Pai</div>
+            <h3 id="rep-card-father-title">Diárias com o Pai</h3>
             
             <div class="report-row">
-              <span>Salário Base:</span>
-              <span id="rep-base-salary" class="amount">R$ 0,00</span>
+              <span>Dias (<span id="rep-father-days-label-name">Com o Pai</span>) (<span id="rep-father-days-count">0</span> dias):</span>
+              <span id="rep-father-days-total" class="amount">R$ 0,00</span>
             </div>
             
-            <div class="report-row text-danger">
-              <span>Desconto de Dias por Conta (<span id="rep-days-off-count">0</span> dias):</span>
-              <span id="rep-deductions" class="amount">- R$ 0,00</span>
+            <div id="rep-offset-row" class="report-row text-danger" style="display: none;">
+              <span><span id="rep-offset-name-label">Pai</span> trabalhou pra mim (<span id="rep-offset-days-count">0</span> dias):</span>
+              <span id="rep-offset-total" class="amount">- R$ 0,00</span>
             </div>
             
             <div class="report-divider"></div>
             
             <div class="report-row highlight">
-              <span>Salário Líquido Pai:</span>
+              <span id="rep-father-balance-label">Total a Receber:</span>
               <span id="rep-father-final" class="amount text-primary">R$ 0,00</span>
             </div>
             <p class="calc-explanation">
-              Cálculo baseado em desconto de dias trabalhados por conta própria.
+              Cálculo baseado na soma das diárias trabalhadas.
             </p>
           </div>
 
@@ -246,7 +246,7 @@
             <h3>Ajudantes / Parcerias</h3>
             
             <div class="report-row">
-              <span>Pai trabalhou comigo (<span id="rep-helper-father-count">0</span> dias):</span>
+              <span><span id="rep-helper-father-lbl">Pai</span> trabalhou comigo (<span id="rep-helper-father-count">0</span> dias):</span>
               <span id="rep-helper-father-total" class="amount text-warning">R$ 0,00</span>
             </div>
             <div class="report-row">
@@ -269,7 +269,7 @@
               <div class="consolidation-stat">
                 <span class="stat-label">Total Líquido Estimado</span>
                 <span id="rep-grand-total" class="stat-value">R$ 0,00</span>
-                <span class="stat-sub">(Salário Pai + Serviços Pagos - Diárias Ajudantes)</span>
+                <span class="stat-sub">(Diárias + Serviços Pagos - Diárias Ajudantes)</span>
               </div>
               <div class="consolidation-stat secondary">
                 <span class="stat-label">Total Geral com Pendentes</span>
@@ -285,43 +285,41 @@
       <section id="tab-config" class="tab-content">
         <!-- Settings Form -->
         <div class="settings-card card">
-          <h2>Valores de Referência</h2>
-          
+          <h2>Valores & Personalização</h2>
+
           <div class="form-group">
-            <label for="cfg-base-salary">Salário Mensal Base (com o Pai):</label>
-            <div class="input-prefix-wrapper">
-              <span class="input-prefix">R$</span>
-              <input type="number" id="cfg-base-salary" placeholder="Ex: 3000" min="0" step="10">
-            </div>
-            <small class="help-text">Salário acordado completo de referência para o mês.</small>
+            <label for="cfg-father-label">Nome / Rótulo do Tipo de Diária:</label>
+            <input type="text" id="cfg-father-label" placeholder="Ex: Com o Pai" maxlength="30">
+            <small class="help-text">Texto exibido no botão do registro rápido, legenda e relatórios (ex: "Com o Pai", "Com Patrão").</small>
           </div>
 
           <div class="form-group">
-            <label for="cfg-day-rate">Valor da Diária de Desconto/Trabalho:</label>
+            <label for="cfg-day-rate">Valor da Diária de Trabalho (<span class="dynamic-father-name">Com o Pai</span>):</label>
             <div class="input-prefix-wrapper">
               <span class="input-prefix">R$</span>
               <input type="number" id="cfg-day-rate" placeholder="Ex: 150" min="0" step="5">
             </div>
-            <small class="help-text">Valor descontado por dia trabalhado por conta própria.</small>
+            <small class="help-text">Valor acordado por dia de diária trabalhado.</small>
           </div>
 
           <div class="form-group">
-            <label for="cfg-helper-rate">Valor Padrão da Diária do Ajudante:</label>
+            <label for="cfg-helper-rate">Valor Padrão da Diária do Ajudante / <span class="dynamic-father-short-name">Pai</span>:</label>
             <div class="input-prefix-wrapper">
               <span class="input-prefix">R$</span>
               <input type="number" id="cfg-helper-rate" placeholder="Ex: 120" min="0" step="5">
             </div>
-            <small class="help-text">Diária padrão paga para quem ajuda você em seus serviços (Pai ou outro ajudante).</small>
+            <small class="help-text">Diária padrão quando ajudam você em seus serviços.</small>
           </div>
           
           <div class="form-group">
-            <label for="cfg-calc-method">Modo de Cálculo com o Pai:</label>
+            <label for="cfg-calc-method">Modo de Cálculo com <span class="dynamic-father-short-name">Pai</span>:</label>
             <div class="select-wrapper">
               <select id="cfg-calc-method">
-                <option value="deduction">Descontar dias não trabalhados do Salário Base</option>
-                <option value="accumulation">Acumular (Dias Trabalhados × Valor da Diária)</option>
+                <option value="offset">Compensar diárias (Dias com ele − Dias que ele trabalhou pra mim)</option>
+                <option value="sum_only">Somar apenas os dias trabalhados com ele</option>
               </select>
             </div>
+            <small class="help-text">Na compensação, se ele trabalhou mais dias pra você do que você pra ele, o sistema indica quanto você deve pagar a ele.</small>
           </div>
 
           <button id="save-settings-btn" class="btn btn-primary btn-block">Salvar Configurações</button>
@@ -443,20 +441,20 @@
         <div class="form-group">
           <label class="section-label">Tipo de Trabalho neste Dia:</label>
           <div class="work-type-selector">
-            <label class="radio-card select-father">
-              <input type="radio" name="modal-work-type" value="father" checked>
-              <div class="radio-content">
-                <span class="radio-icon">🧑‍🤝‍🧑</span>
-                <span class="radio-title">Com o Pai</span>
-                <span class="radio-desc">Garante a diária/salário integral</span>
-              </div>
-            </label>
             <label class="radio-card select-own">
-              <input type="radio" name="modal-work-type" value="own">
+              <input type="radio" name="modal-work-type" value="own" checked>
               <div class="radio-content">
                 <span class="radio-icon">💼</span>
                 <span class="radio-title">Por Conta</span>
                 <span class="radio-desc">Serviço de pintura autônomo</span>
+              </div>
+            </label>
+            <label class="radio-card select-father">
+              <input type="radio" name="modal-work-type" value="father">
+              <div class="radio-content">
+                <span class="radio-icon">🧑‍🤝‍🧑</span>
+                <span class="radio-title" id="modal-work-father-title">Com o Pai</span>
+                <span class="radio-desc">Garante a diária</span>
               </div>
             </label>
             <label class="radio-card select-off">
@@ -539,7 +537,7 @@
               <label for="srv-helper-name">Quem ajudou?</label>
               <div class="select-wrapper">
                 <select id="srv-helper-name">
-                  <option value="father">Pai</option>
+                  <option value="father" id="modal-helper-father-opt">Pai</option>
                   <option value="helper">Outro Ajudante</option>
                 </select>
               </div>
@@ -802,6 +800,6 @@
   <div id="toast-notification" class="toast">Mensagem do Toast</div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

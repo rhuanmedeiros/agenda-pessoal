@@ -15,10 +15,10 @@ let appState = {
   events: {}, // key: 'YYYY-MM-DD', value: { type: 'father'|'own'|'off'|'deleted', serviceId: null, helper: null, updatedAt: 0 }
   services: {}, // key: 'service_id', value: { id, client, address, contact, notes, description, value, valueReceived, status, updatedAt }
   settings: {
-    baseSalary: 3000,
+    fatherLabel: 'Com o Pai', // customizable label for the day type & reports
     dayRate: 150,
-    helperRate: 120, // default wage for helper/father when working with you
-    calcMethod: 'deduction', // 'deduction' | 'accumulation'
+    helperRate: 120, // default wage for helper/boss when working with you
+    calcMethod: 'offset', // 'offset' | 'sum_only'
     theme: 'dark',
     sheetsUrl: SHEETS_URL,
     lastSync: ''
@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.2.0';
+const APP_VERSION = '1.3.1';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -39,6 +39,58 @@ const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
 ];
+
+// Helper: Custom label for "Com o Pai" / "Com Patrão"
+function getFatherLabel() {
+  return (appState.settings && appState.settings.fatherLabel && appState.settings.fatherLabel.trim()) || 'Com o Pai';
+}
+
+function getFatherShortName() {
+  const full = getFatherLabel();
+  const match = full.match(/^Com\s+(?:o\s+|a\s+)?(.+)$/i);
+  if (match && match[1]) return match[1].trim();
+  return full;
+}
+
+function applyDynamicLabels() {
+  const fullLabel = getFatherLabel();
+  const shortName = getFatherShortName();
+
+  // 1. Modal Radio Title
+  const modalRadioTitle = document.getElementById('modal-work-father-title');
+  if (modalRadioTitle) modalRadioTitle.textContent = fullLabel;
+
+  // 2. Modal Helper Select Option
+  const modalHelperOpt = document.getElementById('modal-helper-father-opt');
+  if (modalHelperOpt) modalHelperOpt.textContent = shortName;
+
+  // 3. Legenda no Calendário
+  const legendLabel = document.getElementById('legend-label-father');
+  if (legendLabel) legendLabel.textContent = fullLabel;
+
+  // 4. Relatórios
+  const chartLbl = document.getElementById('chart-lbl-father-name');
+  if (chartLbl) chartLbl.textContent = shortName;
+
+  const repCardBadge = document.getElementById('rep-card-father-badge');
+  if (repCardBadge) repCardBadge.textContent = fullLabel;
+
+  const repCardTitle = document.getElementById('rep-card-father-title');
+  if (repCardTitle) repCardTitle.textContent = `Diárias (${fullLabel})`;
+
+  const repDaysName = document.getElementById('rep-father-days-label-name');
+  if (repDaysName) repDaysName.textContent = fullLabel;
+
+  const repOffsetName = document.getElementById('rep-offset-name-label');
+  if (repOffsetName) repOffsetName.textContent = shortName;
+
+  const repHelperLbl = document.getElementById('rep-helper-father-lbl');
+  if (repHelperLbl) repHelperLbl.textContent = shortName;
+
+  // 5. Configurações text spans
+  document.querySelectorAll('.dynamic-father-name').forEach(el => el.textContent = fullLabel);
+  document.querySelectorAll('.dynamic-father-short-name').forEach(el => el.textContent = shortName);
+}
 
 // --- LOCAL STORAGE FUNCTIONS ---
 function loadState() {
@@ -54,7 +106,9 @@ function loadState() {
     }
   }
   
-  // Set default helperRate if it doesn't exist (backwards compatibility)
+  if (!appState.settings.fatherLabel) {
+    appState.settings.fatherLabel = 'Com o Pai';
+  }
   if (appState.settings.helperRate === undefined) {
     appState.settings.helperRate = 120;
   }
@@ -80,6 +134,9 @@ function loadState() {
     document.body.classList.remove('light-theme');
     document.body.classList.add('dark-theme');
   }
+
+  // Apply dynamic labels
+  applyDynamicLabels();
 }
 
 function saveState() {
@@ -318,6 +375,7 @@ let selectedModalDate = '';
 
 function openDayModal(dateStr) {
   selectedModalDate = dateStr;
+  applyDynamicLabels();
   
   // Set Modal Date Header
   document.getElementById('modal-date-title').textContent = formatDateLong(dateStr);
@@ -390,9 +448,10 @@ function openDayModal(dateStr) {
     // Show delete button
     document.getElementById('modal-delete-day-btn').style.display = 'block';
   } else {
-    // Default form setup for new entry
-    document.querySelector('input[name="modal-work-type"][value="father"]').checked = true;
-    toggleServiceFields('father');
+    // Default form setup for new entry (Por Conta por padrão)
+    const defaultRadio = document.querySelector('input[name="modal-work-type"][value="own"]');
+    if (defaultRadio) defaultRadio.checked = true;
+    toggleServiceFields('own');
     srvSelect.value = 'none';
     document.getElementById('day-description').value = '';
     document.getElementById('modal-delete-day-btn').style.display = 'none';
@@ -683,7 +742,7 @@ function renderServiceModalDaysTab(serviceId) {
     const [y, m, d] = item.date.split('-');
     const formattedDate = `${d}/${m}/${y}`;
     const descText = item.description || 'Sem descrição cadastrada';
-    const helperText = item.helper ? ` (Ajudante: ${item.helper.name === 'father' ? 'Pai' : 'Outro'} - R$ ${item.helper.rate})` : '';
+    const helperText = item.helper ? ` (Ajudante: ${item.helper.name === 'father' ? 'Patrão' : 'Outro'} - R$ ${item.helper.rate})` : '';
 
     el.innerHTML = `
       <div>
@@ -881,9 +940,11 @@ function renderReports() {
   if (!selectedYM) return;
   
   // Constants
-  const baseSalary = appState.settings.baseSalary;
-  const dayRate = appState.settings.dayRate;
-  const calcMethod = appState.settings.calcMethod;
+  const dayRate = Number(appState.settings.dayRate) || 0;
+  let calcMethod = appState.settings.calcMethod;
+  if (calcMethod === 'deduction') calcMethod = 'offset';
+  if (calcMethod === 'accumulation') calcMethod = 'sum_only';
+  if (!calcMethod) calcMethod = 'offset';
   
   // Counts
   let countFather = 0;
@@ -969,52 +1030,84 @@ function renderReports() {
   const barOff = document.getElementById('bar-off');
   
   if (totalDaysLogged > 0) {
-    barFather.style.width = `${(countFather / totalDaysLogged) * 100}%`;
-    barOwn.style.width = `${(countOwn / totalDaysLogged) * 100}%`;
-    barOff.style.width = `${(countOff / totalDaysLogged) * 100}%`;
+    if (barOwn) barOwn.style.width = `${(countOwn / totalDaysLogged) * 100}%`;
+    if (barFather) barFather.style.width = `${(countFather / totalDaysLogged) * 100}%`;
+    if (barOff) barOff.style.width = `${(countOff / totalDaysLogged) * 100}%`;
   } else {
-    barFather.style.width = '0%';
-    barOwn.style.width = '0%';
-    barOff.style.width = '0%';
+    if (barOwn) barOwn.style.width = '0%';
+    if (barFather) barFather.style.width = '0%';
+    if (barOff) barOff.style.width = '0%';
   }
   
-  document.getElementById('chart-lbl-father').textContent = countFather;
-  document.getElementById('chart-lbl-own').textContent = countOwn;
-  document.getElementById('chart-lbl-off').textContent = countOff;
+  const chartLblOwn = document.getElementById('chart-lbl-own');
+  const chartLblFather = document.getElementById('chart-lbl-father');
+  const chartLblOff = document.getElementById('chart-lbl-off');
+  if (chartLblOwn) chartLblOwn.textContent = countOwn;
+  if (chartLblFather) chartLblFather.textContent = countFather;
+  if (chartLblOff) chartLblOff.textContent = countOff;
   
-  // 2. Father Salary calculations
-  let netFatherSalary = 0;
-  let deductionsCount = 0;
-  let deductionsTotal = 0;
+  // 2. Boss / Father Day Rate and Settlement calculations
+  const fullLabel = getFatherLabel();
+  const shortName = getFatherShortName();
+  const totalFatherEarned = countFather * dayRate;
   
-  // Update UI values
-  document.getElementById('rep-base-salary').textContent = formatCurrency(baseSalary);
+  const repFatherDaysCount = document.getElementById('rep-father-days-count');
+  const repFatherDaysTotal = document.getElementById('rep-father-days-total');
+  if (repFatherDaysCount) repFatherDaysCount.textContent = countFather;
+  if (repFatherDaysTotal) repFatherDaysTotal.textContent = formatCurrency(totalFatherEarned);
   
-  if (calcMethod === 'deduction') {
-    // Deduct days worked on own (off days / holidays are not deducted)
-    deductionsCount = countOwn;
-    deductionsTotal = deductionsCount * dayRate;
-    netFatherSalary = Math.max(0, baseSalary - deductionsTotal);
+  const offsetRow = document.getElementById('rep-offset-row');
+  const balanceLabel = document.getElementById('rep-father-balance-label');
+  const finalAmountEl = document.getElementById('rep-father-final');
+  const explanationEl = document.querySelector('.salary-card .calc-explanation');
+  
+  let netWithFather = totalFatherEarned;
+  
+  if (calcMethod === 'offset') {
+    // Modo compensação mútua: (dias com patrão/pai) - (dias que ele trabalhou pra mim)
+    if (offsetRow) {
+      offsetRow.style.display = 'flex';
+      const offsetDaysCount = document.getElementById('rep-offset-days-count');
+      const offsetTotal = document.getElementById('rep-offset-total');
+      if (offsetDaysCount) offsetDaysCount.textContent = helperFatherCount;
+      if (offsetTotal) offsetTotal.textContent = `- ${formatCurrency(helperFatherTotal)}`;
+    }
     
-    document.getElementById('rep-days-off-count').textContent = deductionsCount;
-    document.getElementById('rep-deductions').textContent = `- ${formatCurrency(deductionsTotal)}`;
+    const diff = totalFatherEarned - helperFatherTotal;
+    netWithFather = diff;
     
-    const explanation = document.querySelector('.calc-explanation');
-    explanation.textContent = `Modo Desconto: Subtrai ${deductionsCount} dias por conta no valor diário de ${formatCurrency(dayRate)} do salário base de ${formatCurrency(baseSalary)}.`;
+    if (diff >= 0) {
+      if (balanceLabel) balanceLabel.textContent = `A Receber (${shortName}):`;
+      if (finalAmountEl) {
+        finalAmountEl.textContent = formatCurrency(diff);
+        finalAmountEl.className = "amount text-primary";
+      }
+      if (explanationEl) {
+        explanationEl.innerHTML = `Modo Compensação: Trabalhou <strong>${countFather} dias</strong> (${fullLabel}) (+${formatCurrency(totalFatherEarned)}) e ele trabalhou <strong>${helperFatherCount} dias</strong> pra você (-${formatCurrency(helperFatherTotal)}). Saldo a receber: <strong>${formatCurrency(diff)}</strong>.`;
+      }
+    } else {
+      const amountToPay = Math.abs(diff);
+      if (balanceLabel) balanceLabel.textContent = `⚠️ Você deve Pagar a(o) ${shortName}:`;
+      if (finalAmountEl) {
+        finalAmountEl.textContent = formatCurrency(amountToPay);
+        finalAmountEl.className = "amount text-danger";
+      }
+      if (explanationEl) {
+        explanationEl.innerHTML = `Modo Compensação: ${shortName} trabalhou mais dias pra você (<strong>${helperFatherCount} dias</strong> = ${formatCurrency(helperFatherTotal)}) do que você com ele (<strong>${countFather} dias</strong> = ${formatCurrency(totalFatherEarned)}). Você deve pagar a ele a diferença de <strong>${formatCurrency(amountToPay)}</strong>.`;
+      }
+    }
   } else {
-    // Accumulation mode: sum days worked for father
-    netFatherSalary = countFather * dayRate;
-    deductionsCount = 0;
-    deductionsTotal = 0;
-    
-    document.getElementById('rep-days-off-count').textContent = 0;
-    document.getElementById('rep-deductions').textContent = formatCurrency(0);
-    
-    const explanation = document.querySelector('.calc-explanation');
-    explanation.textContent = `Modo Acumulação: Multiplica ${countFather} dias trabalhados com o pai pelo valor da diária de ${formatCurrency(dayRate)}.`;
+    // Modo soma simples de diárias
+    if (offsetRow) offsetRow.style.display = 'none';
+    if (balanceLabel) balanceLabel.textContent = `Total a Receber (${shortName}):`;
+    if (finalAmountEl) {
+      finalAmountEl.textContent = formatCurrency(totalFatherEarned);
+      finalAmountEl.className = "amount text-primary";
+    }
+    if (explanationEl) {
+      explanationEl.innerHTML = `Modo Soma de Diárias: Multiplica <strong>${countFather} dias</strong> trabalhados (${fullLabel}) pelo valor da diária de <strong>${formatCurrency(dayRate)}</strong>.`;
+    }
   }
-  
-  document.getElementById('rep-father-final').textContent = formatCurrency(netFatherSalary);
   
   // 3. Own Painting Services Calculations
   const ownTotalSum = ownPaidSum + ownPendingSum;
@@ -1029,9 +1122,9 @@ function renderReports() {
   document.getElementById('rep-helper-other-total').textContent = formatCurrency(helperOtherTotal);
   document.getElementById('rep-helper-total').textContent = formatCurrency(helperTotal);
   
-  // 5. Combined Monthly Consolidation (Deducting helper cost)
-  const grandTotal = netFatherSalary + ownPaidSum - helperTotal; // physically received net profit
-  const grandTotalWithPending = netFatherSalary + ownTotalSum - helperTotal; // potential net profit
+  // 5. Combined Monthly Consolidation (Diárias + Serviços Pagos - Diárias de todos os Ajudantes)
+  const grandTotal = totalFatherEarned + ownPaidSum - helperTotal; // Lucro líquido real recebido
+  const grandTotalWithPending = totalFatherEarned + ownTotalSum - helperTotal; // Lucro potencial
   
   document.getElementById('rep-grand-total').textContent = formatCurrency(grandTotal);
   document.getElementById('rep-grand-total-with-pending').textContent = formatCurrency(grandTotalWithPending);
@@ -1076,10 +1169,20 @@ function updateReportMonthDropdown() {
 
 // --- SETTINGS ENGINE ---
 function loadSettingsToUI() {
-  document.getElementById('cfg-base-salary').value = appState.settings.baseSalary;
-  document.getElementById('cfg-day-rate').value = appState.settings.dayRate;
-  document.getElementById('cfg-helper-rate').value = appState.settings.helperRate;
-  document.getElementById('cfg-calc-method').value = appState.settings.calcMethod;
+  const fatherLabelEl = document.getElementById('cfg-father-label');
+  const dayRateEl = document.getElementById('cfg-day-rate');
+  const helperRateEl = document.getElementById('cfg-helper-rate');
+  const calcMethodEl = document.getElementById('cfg-calc-method');
+  
+  if (fatherLabelEl) fatherLabelEl.value = getFatherLabel();
+  if (dayRateEl) dayRateEl.value = appState.settings.dayRate;
+  if (helperRateEl) helperRateEl.value = appState.settings.helperRate;
+  
+  let method = appState.settings.calcMethod;
+  if (method === 'deduction') method = 'offset';
+  if (method === 'accumulation') method = 'sum_only';
+  if (!method) method = 'offset';
+  if (calcMethodEl) calcMethodEl.value = method;
   
   // Sheets URL and Sync status
   const sheetsUrlInput = document.getElementById('cfg-sheets-url');
@@ -1091,10 +1194,13 @@ function loadSettingsToUI() {
   // Versão do app
   const versionLabel = document.getElementById('app-version-label');
   if (versionLabel) versionLabel.textContent = `Versão ${APP_VERSION} (PWA)`;
+
+  applyDynamicLabels();
 }
 
 function saveSettingsFromUI() {
-  const baseSal = Number(document.getElementById('cfg-base-salary').value) || 0;
+  const fatherLabelInput = document.getElementById('cfg-father-label');
+  const fatherLabel = fatherLabelInput ? (fatherLabelInput.value.trim() || 'Com o Pai') : 'Com o Pai';
   const dayRate = Number(document.getElementById('cfg-day-rate').value) || 0;
   const helperRate = Number(document.getElementById('cfg-helper-rate').value) || 0;
   const method = document.getElementById('cfg-calc-method').value;
@@ -1103,18 +1209,20 @@ function saveSettingsFromUI() {
   const sheetsUrlInput = document.getElementById('cfg-sheets-url');
   const sheetsUrl = sheetsUrlInput ? sheetsUrlInput.value.trim() : '';
   
-  appState.settings.baseSalary = baseSal;
+  appState.settings.fatherLabel = fatherLabel;
   appState.settings.dayRate = dayRate;
   appState.settings.helperRate = helperRate;
   appState.settings.calcMethod = method;
   appState.settings.sheetsUrl = sheetsUrl;
   
   saveState();
+  applyDynamicLabels();
   updateSyncHeaderBtnVisibility();
   showToast("✅ Configurações salvas com sucesso!");
   
   // Refresh views that depend on settings
   if (activeTab === 'tab-reports') renderReports();
+  if (activeTab === 'tab-calendar') renderCalendar();
 }
 
 // --- IMPORT & EXPORT (BACKUP) ---
@@ -1744,6 +1852,13 @@ function copySummaryToClipboard() {
   document.getElementById('report-month-select').addEventListener('change', renderReports);
   
   // 9. Settings actions
+  const cfgFatherLabel = document.getElementById('cfg-father-label');
+  if (cfgFatherLabel) {
+    cfgFatherLabel.addEventListener('input', (e) => {
+      appState.settings.fatherLabel = e.target.value.trim() || 'Com o Pai';
+      applyDynamicLabels();
+    });
+  }
   document.getElementById('save-settings-btn').addEventListener('click', saveSettingsFromUI);
   document.getElementById('export-backup-btn').addEventListener('click', exportBackup);
   document.getElementById('import-backup-btn').addEventListener('click', triggerImport);

@@ -132,7 +132,7 @@ function renderReadableTabs_(events, services) {
     var helperName = '';
     var helperRate = '';
     if (ev.helper) {
-      helperName = ev.helper.name === 'father' ? 'Pai' : (ev.helper.name || 'Ajudante');
+      helperName = ev.helper.name === 'father' ? 'Patrão' : (ev.helper.name || 'Ajudante');
       helperRate = ev.helper.rate || '';
     }
     evRows.push([
