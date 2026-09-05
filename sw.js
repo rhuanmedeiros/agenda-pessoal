@@ -1,5 +1,5 @@
 // Versão do cache — mantenha em sincronia com APP_VERSION em app.js. Suba a cada deploy.
-const APP_VERSION = '1.3.5';
+const APP_VERSION = '1.4.0';
 const CACHE_NAME = 'agenda-trabalho-v' + APP_VERSION;
 
 const ASSETS = [
@@ -20,15 +20,14 @@ function isCoreAsset(url) {
          url.pathname.endsWith('/style.css');
 }
 
-// Instalação: pré-cacheia os recursos essenciais
+// Instalação: pré-cacheia os recursos essenciais e ativa imediatamente sem esperar
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('Caching arquivos estáticos...');
       return cache.addAll(ASSETS);
     })
-    // NÃO chama skipWaiting aqui: o novo worker fica "waiting" até o usuário
-    // tocar em "Nova versão disponível" (mensagem SKIP_WAITING vinda do app).
   );
 });
 

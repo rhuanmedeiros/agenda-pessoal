@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.3.5';
+const APP_VERSION = '1.4.0';
 
 // Current calendar date pointer
 let currentDate = new Date();
