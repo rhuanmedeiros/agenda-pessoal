@@ -206,12 +206,12 @@ h4 {
 /* Header Styles */
 .app-header {
   height: auto;
-  min-height: calc(58px + env(safe-area-inset-top, 0px));
+  min-height: calc(70px + env(safe-area-inset-top, 0px));
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: calc(12px + env(safe-area-inset-top, 0px));
-  padding-bottom: 12px;
+  padding-top: calc(22px + env(safe-area-inset-top, 0px));
+  padding-bottom: 14px;
   padding-left: max(1.25rem, env(safe-area-inset-left, 0px));
   padding-right: max(1.25rem, env(safe-area-inset-right, 0px));
   border-bottom: 1px solid var(--border-card);
@@ -280,7 +280,7 @@ body.dark-theme .moon-icon { display: none; }
   flex: 1;
   overflow-y: auto;
   padding: 1.25rem;
-  padding-bottom: 68px; /* Spacer for docked bottom bar */
+  padding-bottom: 72px; /* Spacer for docked bottom bar with gradient */
   -webkit-overflow-scrolling: touch;
 }
 
@@ -303,27 +303,43 @@ body.dark-theme .moon-icon { display: none; }
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Navigation bottom bar (Docked directly at the bottom edge for iPhone) */
+/* Navigation bottom bar (Smooth gradient transition without harsh border line) */
 .app-nav {
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 58px;
-  background: var(--bg-nav);
+  height: 60px;
+  background: linear-gradient(to bottom, rgba(26, 28, 27, 0.9) 0%, rgba(18, 20, 19, 0.98) 100%);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
-  border-top: 1px solid var(--border-card);
-  border-left: none;
-  border-right: none;
-  border-bottom: none;
-  border-radius: 18px 18px 0 0;
+  border: none;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.35);
   z-index: 10;
   padding: 0 8px 4px 8px;
+}
+
+.app-nav::before {
+  content: '';
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 24px;
+  background: linear-gradient(to top, rgba(26, 28, 27, 0.9) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+body.light-theme .app-nav {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.92) 0%, rgba(245, 248, 246, 0.98) 100%);
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.06);
+}
+
+body.light-theme .app-nav::before {
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.92) 0%, transparent 100%);
 }
 
 .nav-item {
@@ -560,6 +576,11 @@ body.dark-theme .nav-item.active {
 .badge-off {
   background: var(--color-off-alpha);
   border: 1.5px solid var(--color-off);
+}
+
+.badge-helper {
+  background: var(--color-helper-alpha);
+  border: 1.5px solid var(--color-helper);
 }
 
 .legend-info {

@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.3.4';
+const APP_VERSION = '1.3.5';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -367,6 +367,7 @@ function updateQuickOverview() {
   let countFather = 0;
   let countOwn = 0;
   let countOff = 0;
+  let countHelper = 0;
   
   Object.keys(appState.events).forEach(dateStr => {
     if (dateStr.startsWith(monthPrefix)) {
@@ -376,13 +377,22 @@ function updateQuickOverview() {
         if (type === 'father') countFather++;
         if (type === 'own') countOwn++;
         if (type === 'off') countOff++;
+        if (event.helper) countHelper++;
       }
     }
   });
   
-  document.getElementById('quick-count-father').textContent = `${countFather} ${countFather === 1 ? 'dia' : 'dias'}`;
-  document.getElementById('quick-count-own').textContent = `${countOwn} ${countOwn === 1 ? 'dia' : 'dias'}`;
-  document.getElementById('quick-count-off').textContent = `${countOff} ${countOff === 1 ? 'dia' : 'dias'}`;
+  const fatherEl = document.getElementById('quick-count-father');
+  if (fatherEl) fatherEl.textContent = `${countFather} ${countFather === 1 ? 'dia' : 'dias'}`;
+
+  const ownEl = document.getElementById('quick-count-own');
+  if (ownEl) ownEl.textContent = `${countOwn} ${countOwn === 1 ? 'dia' : 'dias'}`;
+
+  const helperEl = document.getElementById('quick-count-helper');
+  if (helperEl) helperEl.textContent = `${countHelper} ${countHelper === 1 ? 'dia' : 'dias'}`;
+
+  const offEl = document.getElementById('quick-count-off');
+  if (offEl) offEl.textContent = `${countOff} ${countOff === 1 ? 'dia' : 'dias'}`;
 }
 
 // --- MODAL ENGINE (DAY LOGGER) ---
