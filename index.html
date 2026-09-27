@@ -748,21 +748,33 @@
           </div>
 
           <div class="financial-summary-cards">
-            <div class="fin-card">
-              <span class="fin-lbl">Valor Bruto do Serviço</span>
-              <span id="fin-srv-total" class="fin-val text-primary">R$ 0,00</span>
+            <!-- Hero Card: Lucro Líquido em Destaque -->
+            <div class="fin-card fin-hero-card">
+              <div class="fin-hero-header">
+                <span class="fin-hero-lbl">Lucro Líquido Estimado</span>
+                <span id="fin-srv-margin-badge" class="fin-badge-pill" style="display: none;">0% Margem</span>
+              </div>
+              <span id="fin-srv-profit" class="fin-hero-val">R$ 0,00</span>
+              <span class="fin-hero-sub">Receita após dedução de ajudantes e materiais</span>
             </div>
-            <div class="fin-card">
-              <span class="fin-lbl">Custo com Materiais</span>
-              <span id="fin-srv-materials" class="fin-val text-warning">R$ 0,00</span>
-            </div>
-            <div class="fin-card">
-              <span class="fin-lbl">Custo Ajudantes (Diárias)</span>
-              <span id="fin-srv-helpers" class="fin-val text-warning">R$ 0,00</span>
-            </div>
-            <div class="fin-card highlight">
-              <span class="fin-lbl">Lucro Líquido Estimado</span>
-              <span id="fin-srv-profit" class="fin-val text-success">R$ 0,00</span>
+
+            <!-- Métricas Secundárias em 3 Colunas Integradas -->
+            <div class="fin-metrics-row">
+              <div class="fin-metric-cell">
+                <span class="fin-metric-lbl">Valor Bruto</span>
+                <span id="fin-srv-total" class="fin-metric-val">R$ 0,00</span>
+                <span class="fin-metric-sub">Receita total</span>
+              </div>
+              <div class="fin-metric-cell">
+                <span class="fin-metric-lbl">Materiais</span>
+                <span id="fin-srv-materials" class="fin-metric-val">R$ 0,00</span>
+                <span class="fin-metric-sub">Gasto compras</span>
+              </div>
+              <div class="fin-metric-cell">
+                <span class="fin-metric-lbl">Ajudantes</span>
+                <span id="fin-srv-helpers" class="fin-metric-val text-helpers">R$ 0,00</span>
+                <span class="fin-metric-sub">Diárias pagas</span>
+              </div>
             </div>
           </div>
 
@@ -782,7 +794,7 @@
 
       </div>
       
-      <footer class="modal-footer">
+      <footer class="modal-footer service-detail-modal-footer">
         <button id="service-modal-delete-btn" class="btn btn-text text-danger" style="display: none;">Excluir Serviço</button>
         <button id="service-modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
         <button id="service-modal-save-btn" class="btn btn-primary">Salvar Alterações</button>

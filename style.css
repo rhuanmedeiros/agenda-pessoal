@@ -1846,27 +1846,42 @@ body.light-theme .toast {
   padding: 0.3rem;
   margin: 0.4rem 1rem 0.9rem 1rem;
   gap: 0.25rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.service-modal-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .srv-nav-btn {
-  flex: 1;
-  padding: 0.5rem 0.6rem;
+  flex: 1 0 auto;
+  min-width: fit-content;
+  padding: 0.5rem 0.75rem;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   border-radius: 8px;
   color: var(--text-secondary);
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
 }
 
+.srv-nav-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
 .srv-nav-btn.active {
-  color: #ffffff;
-  background: var(--color-brand-green);
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  color: #4edea3;
+  background: rgba(78, 222, 163, 0.15);
+  border-color: rgba(78, 222, 163, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-weight: 700;
 }
 
 .srv-tab-pane {
@@ -2021,38 +2036,192 @@ body.light-theme .toast {
   background: rgba(239, 68, 68, 0.15);
 }
 
-/* BALANÇO FINANCEIRO DO SERVIÇO */
+/* BALANÇO FINANCEIRO DO SERVIÇO (DARK FINTECH MINIMALIST) */
 .financial-summary-cards {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   margin-bottom: 1rem;
 }
 
-.fin-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  border-radius: 12px;
-  padding: 0.85rem;
+/* Hero Card do Lucro Líquido */
+.fin-hero-card {
+  background: linear-gradient(135deg, rgba(78, 222, 163, 0.12) 0%, rgba(30, 32, 31, 0.95) 100%);
+  border: 1px solid rgba(78, 222, 163, 0.3);
+  border-radius: 16px;
+  padding: 1.15rem 1.25rem;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
 }
 
-.fin-card.highlight {
-  grid-column: span 2;
-  background: rgba(0, 168, 107, 0.08);
-  border-color: var(--color-brand-green);
+.fin-hero-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(78, 222, 163, 0.15) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.fin-lbl {
+.fin-hero-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.fin-hero-lbl {
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4edea3;
+}
+
+.fin-badge-pill {
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  background: rgba(78, 222, 163, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(78, 222, 163, 0.35);
+  letter-spacing: 0.02em;
+}
+
+.fin-badge-pill.negative {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.fin-hero-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.fin-hero-val.negative {
+  color: #f87171;
+}
+
+.fin-hero-sub {
   font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 3 Métricas Integradas em Linha */
+.fin-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: 14px;
+  padding: 0.85rem 0.3rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.fin-metric-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.2rem;
+  padding: 0 0.35rem;
+}
+
+.fin-metric-cell:not(:last-child) {
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.fin-metric-lbl {
+  font-size: 0.72rem;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
-.fin-val {
-  font-size: 1.15rem;
+.fin-metric-val {
+  font-size: 0.98rem;
   font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.fin-metric-val.text-helpers {
+  color: #fcd34d; /* Dourado / Âmbar suave */
+}
+
+.fin-metric-sub {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Rodapé Específico do Modal de Detalhes de Serviço */
+.service-detail-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.4rem;
+}
+
+.service-detail-modal-footer #service-modal-delete-btn {
+  flex: 0 0 auto !important;
+  padding: 0.6rem 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f87171;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.service-detail-modal-footer #service-modal-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.service-detail-modal-footer #service-modal-cancel-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.service-detail-modal-footer #service-modal-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.service-detail-modal-footer #service-modal-save-btn {
+  flex: 1.3;
+  background: var(--color-brand-gradient);
+  color: #0f1713;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.1rem;
+  font-weight: 700;
+  font-size: 0.86rem;
+  box-shadow: 0 4px 14px rgba(78, 222, 163, 0.35);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.service-detail-modal-footer #service-modal-save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(78, 222, 163, 0.45);
 }
 
 /* MODAL DE PRÉVIA E IMPRESSÃO */
@@ -2113,4 +2282,38 @@ body.light-theme .toast {
     width: 100%;
   }
 }
+
+@media (max-width: 480px) {
+  .fin-hero-card {
+    padding: 1rem 1.1rem;
+  }
+  .fin-hero-val {
+    font-size: 1.55rem;
+  }
+  .fin-metrics-row {
+    padding: 0.75rem 0.2rem;
+  }
+  .fin-metric-val {
+    font-size: 0.88rem;
+  }
+  .fin-metric-lbl {
+    font-size: 0.68rem;
+  }
+  .fin-metric-sub {
+    font-size: 0.62rem;
+  }
+  .service-detail-modal-footer {
+    padding: 0.85rem 1rem;
+    gap: 0.5rem;
+  }
+  .service-detail-modal-footer #service-modal-cancel-btn {
+    padding: 0.65rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  .service-detail-modal-footer #service-modal-save-btn {
+    padding: 0.65rem 0.9rem;
+    font-size: 0.82rem;
+  }
+}
+
 

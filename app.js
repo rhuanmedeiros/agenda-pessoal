@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.4.1';
+const APP_VERSION = '1.4.2';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -920,11 +920,34 @@ function updateServiceFinancialTab(serviceId) {
   });
 
   const profit = grossValue - materialsCost - helpersCost;
+  const marginPct = grossValue > 0 ? Math.round((profit / grossValue) * 100) : 0;
 
   document.getElementById('fin-srv-total').textContent = formatCurrency(grossValue);
   document.getElementById('fin-srv-materials').textContent = formatCurrency(materialsCost);
   document.getElementById('fin-srv-helpers').textContent = formatCurrency(helpersCost);
-  document.getElementById('fin-srv-profit').textContent = formatCurrency(profit);
+  
+  const profitEl = document.getElementById('fin-srv-profit');
+  profitEl.textContent = formatCurrency(profit);
+  if (profit < 0) {
+    profitEl.classList.add('negative');
+  } else {
+    profitEl.classList.remove('negative');
+  }
+
+  const marginBadge = document.getElementById('fin-srv-margin-badge');
+  if (marginBadge) {
+    if (grossValue > 0) {
+      marginBadge.textContent = `${marginPct}% Margem`;
+      marginBadge.style.display = 'inline-flex';
+      if (marginPct < 0) {
+        marginBadge.classList.add('negative');
+      } else {
+        marginBadge.classList.remove('negative');
+      }
+    } else {
+      marginBadge.style.display = 'none';
+    }
+  }
 }
 
 // Populate service filter dropdowns dynamically based on recorded dates
