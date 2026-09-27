@@ -2,25 +2,20 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Agenda de Trabalho</title>
   
   <!-- SEO & PWA Meta Tags -->
   <meta name="description" content="Agenda pessoal simples para registro de dias trabalhados e controle financeiro.">
-  <meta name="theme-color" content="#121413">
+  <meta name="theme-color" content="#141a1b">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Agenda">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="manifest" href="manifest.json">
   
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=14">
+  <link rel="stylesheet" href="style.css?v=15">
 </head>
 <body class="dark-theme">
   <!-- App Container -->
@@ -29,13 +24,15 @@
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-logo">
-        <img src="icon-192.png" alt="Logo" class="logo-img">
         <div class="logo-text">
-          <h1>Agenda Pessoal</h1>
-          <span class="sub-title">Trabalho & Serviços</span>
+          <h1 id="current-view-title">Calendário</h1>
+          <span id="current-view-subtitle" class="sub-title">Agenda Pessoal</span>
         </div>
       </div>
       <div class="header-actions">
+        <button id="header-add-btn" class="icon-btn header-add-btn" type="button" aria-label="Registrar dia de trabalho">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
         <button id="sync-header-btn" class="icon-btn" aria-label="Sincronizar Dados" style="display: none;">
           <svg class="sync-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17.5 19A3.5 3.5 0 0 0 21 15.5c0-2.79-2.54-4.5-5-4.5-.47 0-.89.09-1.25.26A5 5 0 0 0 5 14c0 2.21 1.79 4 4 4h8.5"></path>
@@ -87,11 +84,25 @@
           <div id="calendar-days-grid" class="days-grid">
             <!-- Rendered dynamically via JS -->
           </div>
+          <div class="calendar-legend" aria-label="Legenda dos registros">
+            <span><i class="dot dot-own"></i>Por conta</span>
+            <span><i class="dot dot-father"></i>Com o pai</span>
+            <span><i class="dot dot-helper"></i>Com ajudante</span>
+            <span><i class="dot dot-off"></i>Folga</span>
+          </div>
         </div>
+
+        <section class="selected-day-section" aria-live="polite">
+          <h2 id="selected-day-title">Hoje</h2>
+          <button id="selected-day-card" class="selected-day-card" type="button">
+            <span class="selected-day-copy"><strong id="selected-day-name">Sem registro</strong><small id="selected-day-description">Toque para registrar o dia de trabalho</small></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </section>
 
         <!-- Legend / Overview Card -->
         <div class="legend-card card">
-          <h3>Resumo Rápido</h3>
+          <h3>Resumo do mês</h3>
           <div class="legend-items">
             <div class="legend-item" data-type="own">
               <span class="badge badge-own"></span>
@@ -131,16 +142,16 @@
         <!-- Filter & Search Card com Título Unificado -->
         <div class="filter-card card">
           <div class="services-header-actions" style="margin-bottom: 1rem;">
-            <h2>Serviços de Pintura</h2>
+            <h2>Serviços</h2>
             <button id="add-service-btn" class="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              Novo Serviço
+              <span class="new-service-label">Novo serviço</span>
             </button>
           </div>
 
           <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-            <input type="text" id="service-search-input" placeholder="Pesquisar por casa, cliente ou descrição...">
+            <input type="text" id="service-search-input" placeholder="Buscar cliente ou obra" aria-label="Buscar cliente ou obra">
           </div>
           <div class="filter-row" style="margin-top: 0.75rem;">
             <div class="form-group select-wrapper" style="margin-bottom: 0;">
@@ -409,7 +420,7 @@
 
     <!-- Navigation Bar -->
     <nav class="app-nav">
-      <button class="nav-item active" data-tab="tab-calendar">
+      <button class="nav-item active" data-tab="tab-calendar" aria-label="Calendário">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
           <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -418,10 +429,9 @@
         </svg>
         <span>Calendário</span>
       </button>
-      <button class="nav-item" data-tab="tab-services">
+      <button class="nav-item" data-tab="tab-services" aria-label="Serviços">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          <path d="M9 11l2 2 4-4"></path>
+          <path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>
         </svg>
         <span>Serviços</span>
       </button>
@@ -444,13 +454,14 @@
   </div>
 
   <!-- MODAL: REGISTRO/EDIÇÃO DE DIA & SERVIÇO -->
-  <div id="day-modal" class="modal-overlay">
-    <div class="modal-card">
-      <header class="modal-header">
+  <div id="day-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
+    <div class="modal-card day-modal-card">
+      <header class="modal-header day-modal-header">
+        <div class="day-modal-top-actions">
+          <button id="modal-cancel-btn" class="btn btn-text" type="button">Cancelar</button>
+          <button id="modal-save-btn" class="btn btn-primary" type="button">Salvar</button>
+        </div>
         <h3 id="modal-date-title">12 de Junho de 2026</h3>
-        <button id="modal-close-btn" class="icon-btn" aria-label="Fechar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
       </header>
       
       <div class="modal-body">
@@ -461,7 +472,7 @@
             <label class="radio-card select-own">
               <input type="radio" name="modal-work-type" value="own" checked>
               <div class="radio-content">
-                <span class="radio-icon">💼</span>
+                <span class="radio-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></span>
                 <span class="radio-title">Por Conta</span>
                 <span class="radio-desc">Serviço de pintura autônomo</span>
               </div>
@@ -469,7 +480,7 @@
             <label class="radio-card select-father">
               <input type="radio" name="modal-work-type" value="father">
               <div class="radio-content">
-                <span class="radio-icon">🧑‍🤝‍🧑</span>
+                <span class="radio-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2 21v-2a6 6 0 0 1 12 0v2M15 16a5 5 0 0 1 7 4v1"/></svg></span>
                 <span class="radio-title" id="modal-work-father-title">Com o Pai</span>
                 <span class="radio-desc">Garante a diária</span>
               </div>
@@ -477,7 +488,7 @@
             <label class="radio-card select-off">
               <input type="radio" name="modal-work-type" value="off">
               <div class="radio-content">
-                <span class="radio-icon">🏖️</span>
+                <span class="radio-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                 <span class="radio-title">Folga / Descanso</span>
                 <span class="radio-desc">Nenhum trabalho registrado</span>
               </div>
@@ -513,7 +524,7 @@
               <input type="text" id="srv-client" placeholder="Ex: Casa do Sr. João / Pintura Fachada">
             </div>
 
-            <p class="field-hint" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 0 0.6rem 0;">💡 Cadastre só o nome e o valor agora. Endereço, contato e observações podem ser preenchidos depois na aba Serviços.</p>
+            <p class="field-hint" style="font-size: 0.75rem; color: var(--text-secondary); margin: 0 0 0.6rem 0;">Cadastre o nome e o valor agora. Endereço, contato e observações podem ser preenchidos depois em Serviços.</p>
 
             <div class="form-row">
               <div class="form-group">
@@ -570,35 +581,31 @@
           </div>
         </div>
 
+        <button id="modal-delete-day-btn" class="btn btn-text text-danger day-delete-action" type="button" style="display: none;">Remover registro</button>
       </div>
-      
-      <footer class="modal-footer">
-        <button id="modal-delete-day-btn" class="btn btn-text text-danger" style="display: none;">Remover Registro</button>
-        <button id="modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
-        <button id="modal-save-btn" class="btn btn-primary">Salvar Registro</button>
-      </footer>
     </div>
   </div>
 
   <!-- MODAL: DETALHAMENTO E EDIÇÃO DE SERVIÇO DE PINTURA -->
-  <div id="service-modal" class="modal-overlay">
+  <div id="service-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="service-modal-title">
     <div class="modal-card service-detail-modal-card">
       <header class="modal-header service-detail-modal-header">
         <div>
           <h3 id="service-modal-title">Detalhes do Serviço</h3>
           <span id="service-modal-subtitle" class="sub-title">Visualização completa e materiais</span>
         </div>
-        <button id="service-modal-close-btn" class="icon-btn" aria-label="Fechar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
+        <div class="service-modal-top-actions">
+          <button id="service-modal-close-btn" class="btn btn-text" type="button">Cancelar</button>
+          <button id="service-modal-save-btn" class="btn btn-primary" type="button">Salvar</button>
+        </div>
       </header>
       
       <!-- Navegação em Pílulas Compactas (Segmented Control) -->
-      <nav class="service-modal-nav">
-        <button type="button" class="srv-nav-btn active" data-srv-tab="srv-tab-general">📋 Dados</button>
-        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-days">📅 Dias (<span id="srv-tab-days-count">0</span>)</button>
-        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-materials">🎨 Materiais (<span id="srv-tab-mat-count">0</span>)</button>
-        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-financial">💰 Balanço</button>
+      <nav class="service-modal-nav" role="tablist" aria-label="Detalhes do serviço">
+        <button type="button" class="srv-nav-btn active" data-srv-tab="srv-tab-general">Dados</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-days">Dias</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-materials">Materiais</button>
+        <button type="button" class="srv-nav-btn" data-srv-tab="srv-tab-financial">Balanço</button>
       </nav>
       
       <div class="modal-body service-modal-body">
@@ -608,7 +615,7 @@
           
           <!-- Card de Informações da Obra -->
           <div class="form-section-card">
-            <h5 class="form-section-title">👤 Cliente & Local</h5>
+            <h5 class="form-section-title">Cliente e local</h5>
             
             <div class="form-group">
               <label for="edit-srv-client">Qual Casa / Cliente?</label>
@@ -619,7 +626,7 @@
               <label for="edit-srv-address">Endereço / Local da obra</label>
               <div class="input-inline-action-wrapper">
                 <input type="text" id="edit-srv-address" placeholder="Ex: Rua das Flores, 123 - Centro">
-                <button type="button" id="open-map-btn" class="input-inline-btn" title="Ver no Mapa">📍 Mapa</button>
+                <button type="button" id="open-map-btn" class="input-inline-btn" title="Ver no Mapa">Mapa</button>
               </div>
             </div>
 
@@ -627,14 +634,14 @@
               <label for="edit-srv-contact">Contato do cliente</label>
               <div class="input-inline-action-wrapper">
                 <input type="tel" id="edit-srv-contact" placeholder="Ex: (11) 99999-9999">
-                <button type="button" id="open-whatsapp-btn" class="input-inline-btn" title="Abrir WhatsApp">💬 Whats</button>
+                <button type="button" id="open-whatsapp-btn" class="input-inline-btn" title="Abrir WhatsApp">WhatsApp</button>
               </div>
             </div>
           </div>
 
           <!-- Card de Observações -->
           <div class="form-section-card">
-            <h5 class="form-section-title">📝 Detalhes & Combinados</h5>
+            <h5 class="form-section-title">Detalhes e combinados</h5>
             <div class="form-group" style="margin-bottom: 0;">
               <label for="edit-srv-description">Observações da Obra</label>
               <textarea id="edit-srv-description" rows="2" placeholder="Ex: Tinta acrílica premium, portão fica para o final..."></textarea>
@@ -643,7 +650,7 @@
 
           <!-- Card de Valores -->
           <div class="form-section-card">
-            <h5 class="form-section-title">💵 Valores & Status</h5>
+            <h5 class="form-section-title">Valores e status</h5>
             
             <div class="form-row">
               <div class="form-group">
@@ -673,13 +680,14 @@
               </div>
             </div>
           </div>
+          <button id="service-modal-delete-btn" class="btn btn-text text-danger service-delete-action" type="button" style="display: none;">Excluir serviço</button>
 
         </div>
 
         <!-- ABA 2: DIAS TRABALHADOS -->
         <div id="srv-tab-days" class="srv-tab-pane">
           <div class="srv-pane-header">
-            <h4>Registro dos Dias Trabalhados</h4>
+            <h4>Dias registrados <span id="srv-tab-days-count" class="section-count">0</span></h4>
             <small class="help-text">Histórico detalhado do que foi feito em cada dia nesta obra.</small>
           </div>
           
@@ -691,7 +699,7 @@
         <!-- ABA 3: REGISTRO DE MATERIAIS -->
         <div id="srv-tab-materials" class="srv-tab-pane">
           <div class="srv-pane-header">
-            <h4>Materiais Usados / Comprados</h4>
+            <h4>Materiais <span id="srv-tab-mat-count" class="section-count">0</span></h4>
             <small class="help-text">Ideal para obras mais longas com compras de tintas, massas, lixas e agregados.</small>
           </div>
 
@@ -743,60 +751,32 @@
         <!-- ABA 4: BALANÇO FINANCEIRO DA OBRA -->
         <div id="srv-tab-financial" class="srv-tab-pane">
           <div class="srv-pane-header">
-            <h4>Balanço Financeiro da Obra</h4>
-            <small class="help-text">Resumo consolidado de ganhos, custos de materiais e ajudantes.</small>
+            <h4>Balanço da obra</h4>
+            <small class="help-text">Valores deste serviço</small>
           </div>
 
-          <!-- Grid 2x2 Simétrico (Opção 2: Emerald Grid) -->
-          <div class="financial-summary-cards fin-grid-2x2">
-            <!-- Card 1: Valor Bruto (Receita Total) -->
-            <div class="fin-card">
-              <div class="fin-card-header">
-                <span class="fin-lbl">Valor Bruto</span>
-                <span class="fin-trend-icon">↗</span>
-              </div>
-              <span id="fin-srv-total" class="fin-val text-white">R$ 0,00</span>
-              <span class="fin-sub">Receita total da obra</span>
+          <div class="financial-summary-cards">
+            <div class="fin-result">
+              <div class="fin-result-heading"><span>Resultado estimado</span><span id="fin-srv-margin-badge" class="fin-badge-pill" style="display: none;">0%</span></div>
+              <strong id="fin-srv-profit" class="fin-result-value">R$ 0,00</strong>
+              <small>Valor do serviço menos custos registrados</small>
             </div>
-
-            <!-- Card 2: Lucro Líquido (Lucro Real) -->
-            <div class="fin-card fin-card-profit">
-              <div class="fin-card-header">
-                <span class="fin-lbl text-profit-lbl">Lucro Líquido</span>
-                <span id="fin-srv-margin-badge" class="fin-badge-pill" style="display: none;">0%</span>
-              </div>
-              <span id="fin-srv-profit" class="fin-val text-profit-val">R$ 0,00</span>
-              <span class="fin-sub text-profit-sub">Lucro Real</span>
+            <div class="fin-breakdown">
+              <div><span>Valor do serviço</span><strong id="fin-srv-total">R$ 0,00</strong></div>
+              <div><span>Materiais</span><strong id="fin-srv-materials">R$ 0,00</strong></div>
+              <div><span>Ajudantes</span><strong id="fin-srv-helpers">R$ 0,00</strong></div>
             </div>
-
-            <!-- Card 3: Custo com Materiais -->
-            <div class="fin-card">
-              <div class="fin-card-header">
-                <span class="fin-lbl">Materiais</span>
-              </div>
-              <span id="fin-srv-materials" class="fin-val text-white">R$ 0,00</span>
-              <span class="fin-sub">Gasto com produtos</span>
-            </div>
-
-            <!-- Card 4: Custo com Ajudantes -->
-            <div class="fin-card">
-              <div class="fin-card-header">
-                <span class="fin-lbl">Ajudantes</span>
-              </div>
-              <span id="fin-srv-helpers" class="fin-val text-helpers">R$ 0,00</span>
-              <span class="fin-sub">Custo de mão de obra</span>
-            </div>
+            <p class="fin-note">O resultado não representa o valor já recebido.</p>
           </div>
 
-          <div class="export-actions-card card" style="margin-top: 1.2rem;">
-            <h5>Compartilhar & Exportar Relatório</h5>
-            <p class="help-text" style="margin-bottom: 1rem;">Envie um resumo detalhado para o cliente via WhatsApp ou gere uma versão para print/PDF.</p>
+          <div class="export-actions-card">
+            <h5>Compartilhar relatório</h5>
             <div class="action-buttons-grid">
               <button type="button" id="export-whatsapp-btn" class="btn btn-secondary">
-                💬 Enviar no WhatsApp
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-4-.9L3 21l1.9-5.5A9 9 0 1 1 21 11.5Z"/></svg> Enviar no WhatsApp <span aria-hidden="true">›</span>
               </button>
               <button type="button" id="export-print-btn" class="btn btn-secondary">
-                📄 Gerar Print / PDF
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 2h8l4 4v16H6zM14 2v5h5M9 12h6M9 16h6"/></svg> Gerar PDF <span aria-hidden="true">›</span>
               </button>
             </div>
           </div>
@@ -804,19 +784,14 @@
 
       </div>
       
-      <footer class="modal-footer service-detail-modal-footer">
-        <button id="service-modal-delete-btn" class="btn btn-text text-danger" style="display: none;">Excluir Serviço</button>
-        <button id="service-modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
-        <button id="service-modal-save-btn" class="btn btn-primary">Salvar Alterações</button>
-      </footer>
     </div>
   </div>
 
   <!-- MODAL: PRÉVIA DE IMPRESSÃO / EXPORTAÇÃO PDF -->
-  <div id="export-modal" class="modal-overlay">
+  <div id="export-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
     <div class="modal-card print-modal-card">
       <header class="modal-header">
-        <h3>Relatório da Obra / Materiais</h3>
+        <h3 id="export-modal-title">Relatório da Obra / Materiais</h3>
         <button id="export-modal-close-btn" class="icon-btn" aria-label="Fechar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
         </button>
@@ -829,8 +804,8 @@
       </div>
       
       <footer class="modal-footer">
-        <button id="print-now-btn" class="btn btn-primary">🖨️ Imprimir / Salvar PDF</button>
-        <button id="copy-summary-btn" class="btn btn-secondary">📋 Copiar Texto</button>
+        <button id="print-now-btn" class="btn btn-primary">Imprimir / salvar PDF</button>
+        <button id="copy-summary-btn" class="btn btn-secondary">Copiar texto</button>
       </footer>
     </div>
   </div>
@@ -839,6 +814,6 @@
   <div id="toast-notification" class="toast">Mensagem do Toast</div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>

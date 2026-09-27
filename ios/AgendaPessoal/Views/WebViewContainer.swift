@@ -19,8 +19,8 @@ struct WebViewContainer: UIViewRepresentable {
         webView.navigationDelegate = context.coordinator
         webView.isOpaque = false
         
-        // Match dark theme background #121413 to prevent white flashing
-        let appBgColor = UIColor(red: 18/255.0, green: 20/255.0, blue: 19/255.0, alpha: 1.0)
+        // Match the web app's dark graphite background during launch.
+        let appBgColor = UIColor(red: 20/255.0, green: 26/255.0, blue: 27/255.0, alpha: 1.0)
         webView.backgroundColor = appBgColor
         webView.scrollView.backgroundColor = appBgColor
         

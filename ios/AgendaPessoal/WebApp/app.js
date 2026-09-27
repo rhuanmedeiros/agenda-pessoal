@@ -26,10 +26,11 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.4.3';
+const APP_VERSION = '1.4.4';
 
 // Current calendar date pointer
 let currentDate = new Date();
+let selectedCalendarDate = getLocalDateString(currentDate);
 
 // Active tab tracking
 let activeTab = 'tab-calendar';
@@ -314,6 +315,9 @@ function renderCalendar() {
     // Construct local YYYY-MM-DD string
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     dayBtn.dataset.date = dateStr;
+    dayBtn.setAttribute('aria-label', formatDateLong(dateStr));
+    dayBtn.classList.toggle('selected-cell', dateStr === selectedCalendarDate);
+    dayBtn.setAttribute('aria-pressed', String(dateStr === selectedCalendarDate));
     
     // Highlight today
     if (dateStr === todayStr) {
@@ -351,11 +355,32 @@ function renderCalendar() {
     }
     
     // Click action opens editor modal
-    dayBtn.addEventListener('click', () => openDayModal(dateStr));
+    dayBtn.addEventListener('click', () => {
+      selectedCalendarDate = dateStr;
+      renderCalendar();
+      openDayModal(dateStr);
+    });
     daysGrid.appendChild(dayBtn);
   }
   
   updateQuickOverview();
+  renderSelectedCalendarDay();
+}
+
+function renderSelectedCalendarDay() {
+  const title = document.getElementById('selected-day-title');
+  const name = document.getElementById('selected-day-name');
+  const description = document.getElementById('selected-day-description');
+  const event = appState.events[selectedCalendarDate];
+  title.textContent = formatDateLong(selectedCalendarDate);
+  if (!event || event.type === 'deleted') {
+    name.textContent = 'Sem registro';
+    description.textContent = 'Toque para registrar o dia de trabalho';
+    return;
+  }
+  const service = event.serviceId && appState.services[event.serviceId];
+  name.textContent = service && service.status !== 'deleted' ? service.client : event.type === 'off' ? 'Folga' : event.type === 'father' ? getFatherLabel() : 'Trabalho por conta';
+  description.textContent = event.description || (event.helper ? 'Diária registrada com ajudante' : 'Diária registrada');
 }
 
 // Update the quick counters below the calendar
@@ -578,80 +603,54 @@ function renderServices() {
     return;
   }
   
-  // Renderizar os cards em estado FECHADO por padrão
+  // Lista resumida: cliente, situação, valor e diárias vinculadas.
   filteredServices.forEach(srv => {
-    const card = document.createElement('div');
-    card.classList.add('service-item-card');
-    
-    const valueBRL = formatCurrency(srv.value);
-    const statusText = srv.status === 'paid' ? 'Finalizado' : 'Pendente';
-    const statusClass = srv.status === 'paid' ? 'status-paid' : 'status-pending';
-    
-    const daysCount = srv.days.length;
-    const daysLabel = daysCount === 1 ? '1 dia trabalhado' : `${daysCount} dias trabalhados`;
-    
-    const materialsCount = (srv.materials || []).length;
-    const materialsBadgeHTML = materialsCount > 0 
-      ? `<span class="srv-materials-badge">🎨 ${materialsCount} ${materialsCount === 1 ? 'material' : 'materiais'}</span>` 
-      : '';
-    
-    // Detalhes rápidos (Endereço/Contato)
-    const metaParts = [];
-    if (srv.address) metaParts.push(`📍 ${srv.address}`);
-    if (srv.contact) metaParts.push(`📞 ${srv.contact}`);
-    const metaHTML = metaParts.length > 0 
-      ? `<div style="font-size: 0.76rem; color: var(--text-secondary); margin-top: 0.3rem;">${metaParts.join(' • ')}</div>` 
-      : '';
-    
-    // Valores no rodapé do card fechado
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'service-item-card';
     const received = Number(srv.valueReceived) || 0;
-    const totalVal = Number(srv.value) || 0;
-    let valueBlockHTML;
-    if (received > 0) {
-      const remaining = Math.max(totalVal - received, 0);
-      valueBlockHTML = `
-        <div class="service-preview-left">
-          <span class="service-preview-days-lbl">Recebido ${formatCurrency(received)} de ${valueBRL}</span>
-          <span style="font-weight: 700; font-size: 1.05rem; color: ${remaining > 0 ? 'var(--color-brand-orange)' : 'var(--color-brand-green)'};">
-            ${remaining > 0 ? 'Falta ' + formatCurrency(remaining) : 'Quitado ✅'}
-          </span>
-        </div>`;
-    } else {
-      valueBlockHTML = `
-        <div class="service-preview-left">
-          <span class="service-preview-days-lbl">Valor do Serviço:</span>
-          <span style="font-weight: 700; font-size: 1.05rem; color: var(--color-brand-green);">${valueBRL}</span>
-        </div>`;
-    }
-    
-    card.innerHTML = `
-      <div class="service-item-header">
-        <div class="service-title-container">
-          <div class="service-title-row">
-            <h4 class="service-client-name">${srv.client || 'Sem nome do cliente'}</h4>
-            <span class="srv-days-badge">📅 ${daysLabel}</span>
-            ${materialsBadgeHTML}
-          </div>
-          ${metaHTML}
-        </div>
-        <span class="status-badge ${statusClass}">${statusText}</span>
-      </div>
+    const materialsCount = (srv.materials || []).length;
+    const header = document.createElement('div');
+    header.className = 'service-item-header';
+    const copy = document.createElement('div');
+    copy.className = 'service-title-container';
+    const client = document.createElement('strong');
+    client.className = 'service-client-name';
+    client.textContent = srv.client || 'Sem nome do cliente';
+    const subtitle = document.createElement('small');
+    subtitle.className = 'service-card-subtitle';
+    subtitle.textContent = (srv.notes || srv.description || srv.address || 'Serviço de pintura').split('\n')[0];
+    copy.append(client, subtitle);
+    const status = document.createElement('span');
+    status.className = `status-badge ${srv.status === 'paid' ? 'status-paid' : 'status-pending'}`;
+    status.textContent = srv.status === 'paid' ? 'Pago' : 'Pendente';
+    header.append(copy, status);
 
-      <div class="service-card-preview-info">
-        ${valueBlockHTML}
-        <div class="service-preview-right">
-          <span class="srv-expand-hint">
-            👁️ Ver detalhes / materiais &rarr;
-          </span>
-        </div>
-      </div>
-    `;
-    
-    // Clique no card abre o detalhamento completo do serviço
-    card.addEventListener('click', () => {
-      openServiceModal(srv.id);
-    });
+    const metrics = document.createElement('div');
+    metrics.className = 'service-card-metrics';
+    const value = document.createElement('div');
+    value.innerHTML = '<small>Valor do serviço</small>';
+    const valueStrong = document.createElement('strong');
+    valueStrong.textContent = formatCurrency(srv.value);
+    value.appendChild(valueStrong);
+    const days = document.createElement('div');
+    days.innerHTML = '<small>Dias registrados</small>';
+    const daysStrong = document.createElement('strong');
+    daysStrong.textContent = `${srv.days.length} ${srv.days.length === 1 ? 'dia' : 'dias'}`;
+    days.appendChild(daysStrong);
+    metrics.append(value, days);
 
+    const footer = document.createElement('div');
+    footer.className = 'service-card-footer';
+    const summary = document.createElement('span');
+    summary.textContent = received > 0 ? `Recebido ${formatCurrency(received)}` : materialsCount > 0 ? `${materialsCount} ${materialsCount === 1 ? 'material registrado' : 'materiais registrados'}` : 'Ver detalhes da obra';
+    const arrow = document.createElement('span');
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = '›';
+    footer.append(summary, arrow);
+    card.append(header, metrics, footer);
+    card.setAttribute('aria-label', `Abrir ${srv.client || 'serviço'}, ${srv.days.length} ${srv.days.length === 1 ? 'dia' : 'dias'}, ${formatCurrency(srv.value)}`);
+    card.addEventListener('click', () => openServiceModal(srv.id));
     container.appendChild(card);
   });
 }
@@ -670,11 +669,16 @@ let selectedServiceId = '';
 
 function switchServiceModalTab(tabId) {
   const modal = document.getElementById('service-modal');
+  modal.querySelector('.service-modal-body').scrollTop = 0;
   modal.querySelectorAll('.srv-nav-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.srvTab === tabId);
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', String(btn.dataset.srvTab === tabId));
+    btn.setAttribute('aria-controls', btn.dataset.srvTab);
   });
   modal.querySelectorAll('.srv-tab-pane').forEach(pane => {
     pane.classList.toggle('active', pane.id === tabId);
+    pane.setAttribute('role', 'tabpanel');
   });
 }
 
@@ -687,6 +691,9 @@ function openServiceModal(serviceId) {
   switchServiceModalTab('srv-tab-general');
 
   document.getElementById('service-modal-title').textContent = srv.client || "Detalhes do Serviço";
+  document.getElementById('service-modal-subtitle').textContent = 'Serviço de pintura';
+  document.getElementById('export-whatsapp-btn').disabled = false;
+  document.getElementById('export-print-btn').disabled = false;
   document.getElementById('edit-srv-client').value = srv.client || '';
   document.getElementById('edit-srv-address').value = srv.address || '';
   document.getElementById('edit-srv-contact').value = srv.contact || '';
@@ -713,6 +720,9 @@ function openNewServiceModal() {
   switchServiceModalTab('srv-tab-general');
   
   document.getElementById('service-modal-title').textContent = "Novo Serviço";
+  document.getElementById('service-modal-subtitle').textContent = 'Cadastre os dados da obra';
+  document.getElementById('export-whatsapp-btn').disabled = true;
+  document.getElementById('export-print-btn').disabled = true;
   document.getElementById('edit-srv-client').value = '';
   document.getElementById('edit-srv-address').value = '';
   document.getElementById('edit-srv-contact').value = '';
@@ -726,6 +736,11 @@ function openNewServiceModal() {
   document.getElementById('srv-days-list').innerHTML = '<p class="help-text">Salve o serviço primeiro para vincular dias de trabalho.</p>';
   document.getElementById('materials-items-list').innerHTML = '<p class="help-text">Salve o serviço primeiro para adicionar materiais.</p>';
   document.getElementById('mat-total-amount').textContent = 'R$ 0,00';
+  ['fin-srv-total', 'fin-srv-materials', 'fin-srv-helpers', 'fin-srv-profit'].forEach(id => {
+    document.getElementById(id).textContent = 'R$ 0,00';
+  });
+  document.getElementById('fin-srv-profit').classList.remove('negative');
+  document.getElementById('fin-srv-margin-badge').style.display = 'none';
 
   // Hide delete button for new service
   document.getElementById('service-modal-delete-btn').style.display = 'none';
@@ -736,6 +751,25 @@ function openNewServiceModal() {
 
 function closeServiceModal() {
   document.getElementById('service-modal').classList.remove('active');
+}
+
+function updateAppHeader() {
+  const views = {
+    'tab-calendar': ['Calendário', 'Agenda Pessoal'],
+    'tab-services': ['Serviços', 'Suas obras e registros'],
+    'tab-reports': ['Relatórios', 'Fechamento do mês'],
+    'tab-config': ['Ajustes', 'Preferências e dados']
+  };
+  const [title, subtitle] = views[activeTab] || views['tab-calendar'];
+  document.getElementById('current-view-title').textContent = title;
+  document.getElementById('current-view-subtitle').textContent = subtitle;
+  const addButton = document.getElementById('header-add-btn');
+  addButton.hidden = activeTab !== 'tab-calendar' && activeTab !== 'tab-services';
+  addButton.setAttribute('aria-label', activeTab === 'tab-services' ? 'Novo serviço' : 'Registrar dia de trabalho');
+  document.querySelectorAll('.nav-item').forEach(item => {
+    if (item.dataset.tab === activeTab) item.setAttribute('aria-current', 'page');
+    else item.removeAttribute('aria-current');
+  });
 }
 
 // Renderiza a lista de dias trabalhados dentro do modal do serviço
@@ -771,12 +805,12 @@ function renderServiceModalDaysTab(serviceId) {
 
     el.innerHTML = `
       <div>
-        <div class="day-date-tag">📅 Dia ${formattedDate}</div>
+        <div class="day-date-tag">Dia ${formattedDate}</div>
         <div class="day-desc">${descText}</div>
         ${helperText ? `<div class="day-helper-tag">${helperText}</div>` : ''}
       </div>
       <button type="button" class="btn btn-secondary btn-xs edit-day-direct-btn" data-date="${item.date}">
-        ✏️ Editar Dia
+        Editar dia
       </button>
     `;
 
@@ -827,7 +861,7 @@ function renderServiceModalMaterialsTab(serviceId) {
       </div>
       <div class="mat-item-price-col">
         <span class="mat-item-price">${formatCurrency(mat.price)}</span>
-        <button type="button" class="mat-del-btn" data-index="${index}" title="Excluir Material">🗑️</button>
+        <button type="button" class="mat-del-btn" data-index="${index}" title="Excluir material" aria-label="Excluir material">×</button>
       </div>
     `;
 
@@ -937,7 +971,7 @@ function updateServiceFinancialTab(serviceId) {
   const marginBadge = document.getElementById('fin-srv-margin-badge');
   if (marginBadge) {
     if (grossValue > 0) {
-      marginBadge.textContent = `${marginPct}% Margem`;
+      marginBadge.textContent = marginPct < 0 ? 'Prejuízo' : `${marginPct}% Margem`;
       marginBadge.style.display = 'inline-flex';
       if (marginPct < 0) {
         marginBadge.classList.add('negative');
@@ -1383,6 +1417,13 @@ document.addEventListener('DOMContentLoaded', () => {
   updateReportMonthDropdown();
   loadSettingsToUI();
   updateSyncHeaderBtnVisibility();
+  updateAppHeader();
+
+  document.getElementById('header-add-btn').addEventListener('click', () => {
+    if (activeTab === 'tab-services') openNewServiceModal();
+    else openDayModal(selectedCalendarDate);
+  });
+  document.getElementById('selected-day-card').addEventListener('click', () => openDayModal(selectedCalendarDate));
   
   // 3. Tab Switching Setup
   const navItems = document.querySelectorAll('.nav-item');
@@ -1395,6 +1436,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Hide all tabs and show target tab
       const target = item.dataset.tab;
       activeTab = target;
+      updateAppHeader();
       
       document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -1419,11 +1461,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Calendar Month Navigation
   document.getElementById('prev-month-btn').addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() - 1);
+    selectedCalendarDate = getLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
     renderCalendar();
   });
   
   document.getElementById('next-month-btn').addEventListener('click', () => {
     currentDate.setMonth(currentDate.getMonth() + 1);
+    selectedCalendarDate = getLocalDateString(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1));
     renderCalendar();
   });
   
@@ -1442,7 +1486,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   // 6. Modal Interactions
-  document.getElementById('modal-close-btn').addEventListener('click', closeDayModal);
   document.getElementById('modal-cancel-btn').addEventListener('click', closeDayModal);
   
   // Close modal when tapping overlay background
@@ -1647,7 +1690,6 @@ function copySummaryToClipboard() {
 
   // Service Modal Interactions
   document.getElementById('service-modal-close-btn').addEventListener('click', closeServiceModal);
-  document.getElementById('service-modal-cancel-btn').addEventListener('click', closeServiceModal);
   
   document.getElementById('service-modal').addEventListener('click', (e) => {
     if (e.target.id === 'service-modal') closeServiceModal();
