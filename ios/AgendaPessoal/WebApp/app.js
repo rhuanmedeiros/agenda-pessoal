@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.4.4';
+const APP_VERSION = '1.4.5';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -310,7 +310,10 @@ function renderCalendar() {
   for (let day = 1; day <= totalDays; day++) {
     const dayBtn = document.createElement('button');
     dayBtn.classList.add('day-cell');
-    dayBtn.textContent = day;
+    const dayNumber = document.createElement('span');
+    dayNumber.className = 'day-number';
+    dayNumber.textContent = day;
+    dayBtn.appendChild(dayNumber);
     
     // Construct local YYYY-MM-DD string
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -327,31 +330,26 @@ function renderCalendar() {
     // Check if event exists for this day
     const event = appState.events[dateStr];
     if (event && event.type !== 'deleted') {
+      dayBtn.classList.add('has-record');
       if (event.type === 'father') dayBtn.classList.add('work-father');
       if (event.type === 'own') dayBtn.classList.add('work-own');
       if (event.type === 'off') dayBtn.classList.add('work-off');
       
-      // Indicators below day number
+      // One dot per kind of record, kept in a single row below the number.
       const indicatorsContainer = document.createElement('div');
       indicatorsContainer.classList.add('day-indicators-container');
-      
-      // If there is painting service details
-      if (event.service && event.service.client) {
-        const dot = document.createElement('span');
-        dot.classList.add('service-dot');
-        indicatorsContainer.appendChild(dot);
-      }
-      
-      // If there is helper details (Father or someone else helped)
+      indicatorsContainer.setAttribute('aria-hidden', 'true');
+      const typeDot = document.createElement('span');
+      typeDot.className = `record-dot record-dot-${event.type}`;
+      indicatorsContainer.appendChild(typeDot);
       if (event.helper) {
         const helperDot = document.createElement('span');
-        helperDot.classList.add('helper-dot');
+        helperDot.className = 'record-dot record-dot-helper';
         indicatorsContainer.appendChild(helperDot);
       }
-      
-      if (indicatorsContainer.children.length > 0) {
-        dayBtn.appendChild(indicatorsContainer);
-      }
+      dayBtn.appendChild(indicatorsContainer);
+      const typeLabel = event.type === 'father' ? 'com o pai' : event.type === 'off' ? 'folga' : 'por conta';
+      dayBtn.setAttribute('aria-label', `${formatDateLong(dateStr)}, ${typeLabel}${event.helper ? ', com ajudante' : ''}`);
     }
     
     // Click action opens editor modal
