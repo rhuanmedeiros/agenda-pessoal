@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -139,9 +139,9 @@ function loadState() {
   applyDynamicLabels();
 }
 
-function saveState() {
+function saveState(skipSync = false) {
   localStorage.setItem('agenda_pessoal_state', JSON.stringify(appState));
-  if (!window.isSyncingInProgress) {
+  if (!skipSync) {
     autoSync();
   }
 }
@@ -152,8 +152,8 @@ function autoSync() {
   
   if (window.autoSyncTimeout) clearTimeout(window.autoSyncTimeout);
   window.autoSyncTimeout = setTimeout(() => {
-    syncWithGoogleSheets(true);
-  }, 1500);
+    enqueueSync(true);
+  }, 1000);
 }
 
 
@@ -2009,8 +2009,80 @@ function mergeServices(localServices, remoteServices) {
   return merged;
 }
 
-// Function to trigger synchronization with animated button feedback
+// --- FILA DE PROCESSAMENTO ASSÍNCRONO (ASYNC TASK QUEUE) ---
+/**
+ * Padrão de Projeto: Fila de Tarefas Assíncronas (Job Queue / Task Queue) + Trava de Concorrência (Mutex)
+ *
+ * Como funciona para você que está estudando:
+ * 1. "enqueueSync": Coloca um pedido de envio na fila. Se o sistema já estiver enviando
+ *    algo para o Google Sheets (que leva alguns segundos), ele NÃO abre requisições simultâneas.
+ * 2. "syncQueue": Controla a execução sequencial (FIFO). Se novos dias forem registrados
+ *    enquanto uma sincronização estiver no ar, eles ficam aguardando como "tarefa pendente".
+ * 3. Assim que a sincronização atual termina, a fila verifica se há tarefas pendentes e
+ *    dispara automaticamente uma nova sincronização com os dados mais recentes.
+ * 4. "Non-Destructive Merge" (Mesclagem Não-Destrutiva): Ao receber a resposta da planilha,
+ *    nunca sobrescrevemos diretamente o appState. Fazemos um merge com o estado local atual,
+ *    preservando com 100% de segurança qualquer dia novo registrado durante o trânsito da rede!
+ */
+const syncQueue = {
+  isProcessing: false,
+  pendingTask: null,
+
+  enqueue(isSilent = false) {
+    return new Promise((resolve, reject) => {
+      if (this.pendingTask) {
+        // Se já existe uma solicitação aguardando na fila, unifica
+        // Se qualquer uma das chamadas pediu feedback visual (não silenciosa), respeitamos
+        this.pendingTask.isSilent = this.pendingTask.isSilent && isSilent;
+        this.pendingTask.resolvers.push({ resolve, reject });
+      } else {
+        this.pendingTask = {
+          isSilent: isSilent,
+          resolvers: [{ resolve, reject }]
+        };
+      }
+
+      // Se a fila estiver livre, inicia o processamento imediatamente
+      if (!this.isProcessing) {
+        this.processQueue();
+      }
+    });
+  },
+
+  async processQueue() {
+    if (this.isProcessing || !this.pendingTask) return;
+
+    this.isProcessing = true;
+    const task = this.pendingTask;
+    this.pendingTask = null; // Libera espaço para enfileirar novas alterações que chegarem
+
+    try {
+      const result = await executeSyncWithGoogleSheets(task.isSilent);
+      task.resolvers.forEach(r => r.resolve(result));
+    } catch (err) {
+      task.resolvers.forEach(r => r.reject(err));
+    } finally {
+      this.isProcessing = false;
+      // Se novas alterações entraram na fila enquanto processava a anterior, executa a próxima!
+      if (this.pendingTask) {
+        this.processQueue();
+      }
+    }
+  }
+};
+
+// Função pública para enfileirar uma sincronização
+function enqueueSync(isSilent = false) {
+  return syncQueue.enqueue(isSilent);
+}
+
+// Mantemos syncWithGoogleSheets delegando para a fila para total compatibilidade
 async function syncWithGoogleSheets(isSilent = false) {
+  return enqueueSync(isSilent);
+}
+
+// Execução real do processo de sincronização com o Google Sheets
+async function executeSyncWithGoogleSheets(isSilent = false) {
   const sheetsUrlInput = document.getElementById('cfg-sheets-url');
   const bodySyncBtn = document.getElementById('sync-now-btn');
   const syncBtnLabel = document.getElementById('sync-btn-label');
@@ -2058,9 +2130,7 @@ async function syncWithGoogleSheets(isSilent = false) {
   // Save new URL to state immediately
   if (appState.settings.sheetsUrl !== targetUrl) {
     appState.settings.sheetsUrl = targetUrl;
-    window.isSyncingInProgress = true;
-    saveState();
-    window.isSyncingInProgress = false;
+    saveState(true);
     updateSyncHeaderBtnVisibility();
   }
 
@@ -2091,12 +2161,14 @@ async function syncWithGoogleSheets(isSilent = false) {
 
     const remoteEvents = result.events || {};
     const remoteServices = result.services || {};
-    const localEvents = appState.events || {};
-    const localServices = appState.services || {};
+    
+    // Captura os dados locais no momento atual
+    const currentLocalEvents = appState.events || {};
+    const currentLocalServices = appState.services || {};
 
     // 4. Merge data (Lossless timestamp merge)
-    const consolidatedEvents = mergeEvents(localEvents, remoteEvents);
-    const consolidatedServices = mergeServices(localServices, remoteServices);
+    const consolidatedEvents = mergeEvents(currentLocalEvents, remoteEvents);
+    const consolidatedServices = mergeServices(currentLocalServices, remoteServices);
 
     // 5. Save consolidated data back to Google Sheets (POST)
     const postResponse = await fetch(targetUrl, {
@@ -2115,20 +2187,21 @@ async function syncWithGoogleSheets(isSilent = false) {
       throw new Error(postResult.message || "Erro ao salvar na planilha");
     }
 
-    // 6. Update local state
-    window.isSyncingInProgress = true;
-    appState.events = consolidatedEvents;
-    appState.services = consolidatedServices;
+    // 6. Update local state (MERGE NÃO-DESTRUTIVO)
+    // CRUCIAL: Mescla o consolidatedEvents de volta com appState.events ATUAL!
+    // Se o usuário registrou outros dias durante o tempo que o POST levou na rede,
+    // o updatedAt desses novos dias é maior e eles NÃO são perdidos!
+    appState.events = mergeEvents(appState.events || {}, consolidatedEvents);
+    appState.services = mergeServices(appState.services || {}, consolidatedServices);
 
     const now = new Date();
     const nowStr = now.toLocaleDateString('pt-BR') + ' às ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     appState.settings.lastSync = nowStr;
-    saveState();
-    window.isSyncingInProgress = false;
+    saveState(true); // skipSync = true para evitar autoSync em loop
 
     // Count records
-    const eventsCount = Object.keys(consolidatedEvents).filter(k => consolidatedEvents[k].type !== 'deleted').length;
-    const servicesCount = Object.keys(consolidatedServices).filter(k => consolidatedServices[k].status !== 'deleted').length;
+    const eventsCount = Object.keys(appState.events).filter(k => appState.events[k].type !== 'deleted').length;
+    const servicesCount = Object.keys(appState.services).filter(k => appState.services[k].status !== 'deleted').length;
 
     // 7. Visual Success Response
     triggerHapticFeedback('success');
@@ -2174,6 +2247,8 @@ async function syncWithGoogleSheets(isSilent = false) {
       }
     }, 3500);
 
+    return postResult;
+
   } catch (error) {
     console.error("Erro na sincronização:", error);
     triggerHapticFeedback('error');
@@ -2203,6 +2278,7 @@ async function syncWithGoogleSheets(isSilent = false) {
         if (syncBtnLabel) syncBtnLabel.textContent = 'Tentar Conectar Novamente';
       }
     }, 4000);
+    throw error;
   } finally {
     if (headerIcon) headerIcon.classList.remove('spinning');
     if (bodySyncBtn) bodySyncBtn.disabled = false;

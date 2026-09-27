@@ -1,5 +1,5 @@
 // Versão do cache — mantenha em sincronia com APP_VERSION em app.js. Suba a cada deploy.
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const CACHE_NAME = 'agenda-trabalho-v' + APP_VERSION;
 
 const ASSETS = [
