@@ -26,7 +26,7 @@ let appState = {
 };
 
 // Versão do app (sincronizada com o CACHE_NAME do sw.js). Suba a cada deploy.
-const APP_VERSION = '1.4.5';
+const APP_VERSION = '1.4.6';
 
 // Current calendar date pointer
 let currentDate = new Date();
@@ -1015,9 +1015,35 @@ function updateServiceFilterDropdowns() {
 }
 
 // --- REPORTS TAB ENGINE ---
+function getReportMonths(endYM, count) {
+  const [year, month] = endYM.split('-').map(Number);
+  const months = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const date = new Date(year, month - 1 - i, 1);
+    months.push(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`);
+  }
+  return months;
+}
+
+function formatReportMonth(ym) {
+  const [year, month] = ym.split('-').map(Number);
+  return `${MONTH_NAMES[month - 1]} de ${year}`;
+}
+
 function renderReports() {
   const selectedYM = document.getElementById('report-month-select').value;
   if (!selectedYM) return;
+  const countInput = document.getElementById('report-month-count');
+  const monthCount = Math.min(120, Math.max(1, Math.trunc(Number(countInput.value) || 1)));
+  countInput.value = monthCount;
+  const reportMonths = getReportMonths(selectedYM, monthCount);
+  const reportMonthSet = new Set(reportMonths);
+  const periodLabel = monthCount === 1
+    ? formatReportMonth(selectedYM)
+    : `${formatReportMonth(reportMonths[0])} a ${formatReportMonth(selectedYM)} · ${monthCount} meses`;
+  document.getElementById('report-period-label').textContent = periodLabel;
+  document.getElementById('report-heading').textContent = monthCount === 1 ? 'Fechamento do Mês' : 'Fechamento do Período';
+  document.getElementById('report-result-heading').textContent = monthCount === 1 ? 'Resultado Geral do Mês' : 'Resultado Geral do Período';
   
   // Constants
   const dayRate = Number(appState.settings.dayRate) || 0;
@@ -1041,13 +1067,22 @@ function renderReports() {
   // Own Services sums
   let ownPaidSum = 0;
   let ownPendingSum = 0;
+
+  const monthlyFather = Object.fromEntries(reportMonths.map(ym => [ym, {
+    days: 0, earned: 0, helperDays: 0, helperTotal: 0
+  }]));
   
-  // Loop through events for selected month
+  // Sum events across the selected months, including months with no entries.
   Object.keys(appState.events).forEach(dateStr => {
-    if (dateStr.startsWith(selectedYM)) {
+    const ym = dateStr.substring(0, 7);
+    if (reportMonthSet.has(ym)) {
       const event = appState.events[dateStr];
       if (event && event.type !== 'deleted') {
-        if (event.type === 'father') countFather++;
+        if (event.type === 'father') {
+          countFather++;
+          monthlyFather[ym].days++;
+          monthlyFather[ym].earned += dayRate;
+        }
         if (event.type === 'own') {
           countOwn++;
         }
@@ -1059,6 +1094,8 @@ function renderReports() {
           if (event.helper.name === 'father') {
             helperFatherCount++;
             helperFatherTotal += hRate;
+            monthlyFather[ym].helperDays++;
+            monthlyFather[ym].helperTotal += hRate;
           } else {
             helperOtherCount++;
             helperOtherTotal += hRate;
@@ -1069,7 +1106,7 @@ function renderReports() {
     }
   });
 
-  // Calculate own services sums based on services whose last worked date is in this month
+  // Attribute each service once, to the month of its last recorded work day.
   const serviceDaysMap = {};
   Object.keys(appState.events).forEach(dateStr => {
     const event = appState.events[dateStr];
@@ -1091,7 +1128,7 @@ function renderReports() {
     days.sort();
     const lastWorkedDate = days[days.length - 1];
     
-    if (lastWorkedDate.startsWith(selectedYM)) {
+    if (reportMonthSet.has(lastWorkedDate.substring(0, 7))) {
       const val = Number(srv.value) || 0;
       if (srv.status === 'paid') {
         ownPaidSum += val;
@@ -1101,7 +1138,7 @@ function renderReports() {
     }
   });
   
-  // Total logged days this month
+  // Total logged days in the period
   const totalDaysLogged = countFather + countOwn + countOff;
   
   // 1. Stacked Bar Chart update
@@ -1188,6 +1225,32 @@ function renderReports() {
       explanationEl.innerHTML = `Modo Soma de Diárias: Multiplica <strong>${countFather} dias</strong> trabalhados (${fullLabel}) pelo valor da diária de <strong>${formatCurrency(dayRate)}</strong>.`;
     }
   }
+
+  const monthlyCard = document.getElementById('report-monthly-breakdown');
+  monthlyCard.hidden = monthCount === 1;
+  const monthlyRows = document.getElementById('report-monthly-rows');
+  monthlyRows.replaceChildren();
+  if (monthCount > 1) {
+    reportMonths.forEach(ym => {
+      const month = monthlyFather[ym];
+      const balance = month.earned - (calcMethod === 'offset' ? month.helperTotal : 0);
+      const row = document.createElement('div');
+      row.className = 'report-monthly-row';
+      const details = document.createElement('div');
+      const title = document.createElement('strong');
+      title.textContent = formatReportMonth(ym);
+      const counts = document.createElement('small');
+      counts.textContent = calcMethod === 'offset'
+        ? `${month.days} dias com ${shortName} · ${month.helperDays} dias dele com você`
+        : `${month.days} dias com ${shortName}`;
+      details.append(title, counts);
+      const amount = document.createElement('strong');
+      amount.className = balance < 0 ? 'text-danger' : 'text-primary';
+      amount.textContent = `${balance < 0 ? 'A pagar: ' : 'A receber: '}${formatCurrency(Math.abs(balance))}`;
+      row.append(details, amount);
+      monthlyRows.append(row);
+    });
+  }
   
   // 3. Own Painting Services Calculations
   const ownTotalSum = ownPaidSum + ownPendingSum;
@@ -1202,7 +1265,7 @@ function renderReports() {
   document.getElementById('rep-helper-other-total').textContent = formatCurrency(helperOtherTotal);
   document.getElementById('rep-helper-total').textContent = formatCurrency(helperTotal);
   
-  // 5. Combined Monthly Consolidation (Diárias + Serviços Pagos - Diárias de todos os Ajudantes)
+  // 5. Combined period consolidation (Diárias + Serviços Pagos - Diárias de todos os Ajudantes)
   const grandTotal = totalFatherEarned + ownPaidSum - helperTotal; // Lucro líquido real recebido
   const grandTotalWithPending = totalFatherEarned + ownTotalSum - helperTotal; // Lucro potencial
   
@@ -1215,27 +1278,32 @@ function updateReportMonthDropdown() {
   const monthSelect = document.getElementById('report-month-select');
   const activeValue = monthSelect.value || '';
   
-  // Generate all months starting from current date, and include any month that has events
-  const monthsSet = new Set();
+  // Include every month between the oldest entry and today, even empty months.
+  const today = new Date();
+  const currentYM = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  let firstYM = currentYM;
+  let lastYM = currentYM;
   
-  // Always include current month
-  const currentYM = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-  monthsSet.add(currentYM);
-  
-  // Add months from events
   Object.keys(appState.events).forEach(dateStr => {
     const event = appState.events[dateStr];
-    if (event && event.type !== 'deleted') {
-      monthsSet.add(dateStr.substring(0, 7));
+    const ym = dateStr.substring(0, 7);
+    if (event && event.type !== 'deleted' && /^\d{4}-(0[1-9]|1[0-2])$/.test(ym)) {
+      if (ym < firstYM) firstYM = ym;
+      if (ym > lastYM) lastYM = ym;
     }
   });
-  
-  const sortedMonths = Array.from(monthsSet).sort().reverse();
+
+  // Keep the previous month available when there is no historical entry yet.
+  const previousYM = getReportMonths(currentYM, 2)[0];
+  if (previousYM < firstYM) firstYM = previousYM;
+  const [lastYear, lastMonth] = lastYM.split('-').map(Number);
+  const [firstYear, firstMonth] = firstYM.split('-').map(Number);
+  const numberOfMonths = (lastYear - firstYear) * 12 + lastMonth - firstMonth + 1;
+  const sortedMonths = getReportMonths(lastYM, numberOfMonths).reverse();
   
   let html = '';
   sortedMonths.forEach(ym => {
-    const [year, month] = ym.split('-');
-    html += `<option value="${ym}">${MONTH_NAMES[Number(month) - 1]} ${year}</option>`;
+    html += `<option value="${ym}">${formatReportMonth(ym)}</option>`;
   });
   
   monthSelect.innerHTML = html;
@@ -1950,8 +2018,9 @@ function copySummaryToClipboard() {
     openNewServiceModal();
   });
   
-  // 8. Reports Month Selector listener
+  // 8. Reports period selectors
   document.getElementById('report-month-select').addEventListener('change', renderReports);
+  document.getElementById('report-month-count').addEventListener('change', renderReports);
   
   // 9. Settings actions
   const cfgFatherLabel = document.getElementById('cfg-father-label');

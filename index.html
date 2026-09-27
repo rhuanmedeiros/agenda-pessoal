@@ -15,7 +15,7 @@
   <link rel="manifest" href="manifest.json">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="style.css?v=16">
+  <link rel="stylesheet" href="style.css?v=17">
 </head>
 <body class="dark-theme">
   <!-- App Container -->
@@ -180,14 +180,23 @@
         
         <!-- Card do Cabeçalho de Relatórios -->
         <div class="report-header-card card">
-          <div class="report-header-row" style="margin-bottom: 0;">
-            <h2 style="margin-bottom: 0;">Fechamento do Mês</h2>
-            <div class="form-group select-wrapper compact" style="margin-bottom: 0;">
-              <select id="report-month-select">
-                <!-- Populated dynamically -->
-              </select>
+          <div class="report-header-row">
+            <h2 id="report-heading">Fechamento do Mês</h2>
+            <div class="report-range-controls">
+              <div class="form-group select-wrapper compact">
+                <label for="report-month-select">Mês final</label>
+                <select id="report-month-select">
+                  <!-- Populated dynamically -->
+                </select>
+              </div>
+              <div class="form-group compact">
+                <label for="report-month-count">Quantidade de meses</label>
+                <input id="report-month-count" type="number" min="1" max="120" step="1" value="1" inputmode="numeric">
+              </div>
             </div>
           </div>
+          <p id="report-period-label" class="report-period-label" aria-live="polite"></p>
+          <p class="report-period-help">O período inclui o mês final e os meses anteriores. Para os 3 meses anteriores ao atual, escolha o mês passado e informe 3.</p>
         </div>
 
         <!-- Financial Summary Cards -->
@@ -261,8 +270,8 @@
 
           <!-- Helpers / Wages to Pay Report -->
           <div class="helpers-card card">
-            <div class="card-badge yellow">Comigo (Ajudante)</div>
-            <h3>Ajudantes / Parcerias</h3>
+            <div class="card-badge yellow">(Ajudante)</div>
+            <h3>Parcerias</h3>
             
             <div class="report-row">
               <span><span id="rep-helper-father-lbl">Pai</span> trabalhou comigo (<span id="rep-helper-father-count">0</span> dias):</span>
@@ -281,9 +290,14 @@
             </div>
           </div>
 
+          <div id="report-monthly-breakdown" class="report-monthly-card card" hidden>
+            <h3>Acerto por mês</h3>
+            <div id="report-monthly-rows"></div>
+          </div>
+
           <!-- Total Consolidation Card -->
           <div class="consolidation-card card">
-            <h3>Resultado Geral do Mês</h3>
+            <h3 id="report-result-heading">Resultado Geral do Mês</h3>
             <div class="consolidation-content">
               <div class="consolidation-stat">
                 <span class="stat-label">Total Líquido Estimado</span>
@@ -814,6 +828,6 @@
   <div id="toast-notification" class="toast">Mensagem do Toast</div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>
