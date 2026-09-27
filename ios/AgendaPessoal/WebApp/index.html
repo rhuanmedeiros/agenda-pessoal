@@ -747,34 +747,44 @@
             <small class="help-text">Resumo consolidado de ganhos, custos de materiais e ajudantes.</small>
           </div>
 
-          <div class="financial-summary-cards">
-            <!-- Hero Card: Lucro Líquido em Destaque -->
-            <div class="fin-card fin-hero-card">
-              <div class="fin-hero-header">
-                <span class="fin-hero-lbl">Lucro Líquido Estimado</span>
-                <span id="fin-srv-margin-badge" class="fin-badge-pill" style="display: none;">0% Margem</span>
+          <!-- Grid 2x2 Simétrico (Opção 2: Emerald Grid) -->
+          <div class="financial-summary-cards fin-grid-2x2">
+            <!-- Card 1: Valor Bruto (Receita Total) -->
+            <div class="fin-card">
+              <div class="fin-card-header">
+                <span class="fin-lbl">Valor Bruto</span>
+                <span class="fin-trend-icon">↗</span>
               </div>
-              <span id="fin-srv-profit" class="fin-hero-val">R$ 0,00</span>
-              <span class="fin-hero-sub">Receita após dedução de ajudantes e materiais</span>
+              <span id="fin-srv-total" class="fin-val text-white">R$ 0,00</span>
+              <span class="fin-sub">Receita total da obra</span>
             </div>
 
-            <!-- Métricas Secundárias em 3 Colunas Integradas -->
-            <div class="fin-metrics-row">
-              <div class="fin-metric-cell">
-                <span class="fin-metric-lbl">Valor Bruto</span>
-                <span id="fin-srv-total" class="fin-metric-val">R$ 0,00</span>
-                <span class="fin-metric-sub">Receita total</span>
+            <!-- Card 2: Lucro Líquido (Lucro Real) -->
+            <div class="fin-card fin-card-profit">
+              <div class="fin-card-header">
+                <span class="fin-lbl text-profit-lbl">Lucro Líquido</span>
+                <span id="fin-srv-margin-badge" class="fin-badge-pill" style="display: none;">0%</span>
               </div>
-              <div class="fin-metric-cell">
-                <span class="fin-metric-lbl">Materiais</span>
-                <span id="fin-srv-materials" class="fin-metric-val">R$ 0,00</span>
-                <span class="fin-metric-sub">Gasto compras</span>
+              <span id="fin-srv-profit" class="fin-val text-profit-val">R$ 0,00</span>
+              <span class="fin-sub text-profit-sub">Lucro Real</span>
+            </div>
+
+            <!-- Card 3: Custo com Materiais -->
+            <div class="fin-card">
+              <div class="fin-card-header">
+                <span class="fin-lbl">Materiais</span>
               </div>
-              <div class="fin-metric-cell">
-                <span class="fin-metric-lbl">Ajudantes</span>
-                <span id="fin-srv-helpers" class="fin-metric-val text-helpers">R$ 0,00</span>
-                <span class="fin-metric-sub">Diárias pagas</span>
+              <span id="fin-srv-materials" class="fin-val text-white">R$ 0,00</span>
+              <span class="fin-sub">Gasto com produtos</span>
+            </div>
+
+            <!-- Card 4: Custo com Ajudantes -->
+            <div class="fin-card">
+              <div class="fin-card-header">
+                <span class="fin-lbl">Ajudantes</span>
               </div>
+              <span id="fin-srv-helpers" class="fin-val text-helpers">R$ 0,00</span>
+              <span class="fin-sub">Custo de mão de obra</span>
             </div>
           </div>
 
